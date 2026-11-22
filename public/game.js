@@ -895,14 +895,13 @@
   }
 
   function renderSky() {
-    const r = skyState && skyState.raceActive;
+    const r = skyState ? skyState.raceActive : true;
     const mPct = skyState ? Math.min(100, Math.round(skyState.mDist)) : 0;
     const sPct = skyState ? Math.min(100, Math.round(skyState.sDist)) : 0;
     return `<div class="scene bg-sky">
       <div class="sky-bar">
         <h2 style="margin:0">🧹 Broom Race with Seo-Ah</h2>
-        <button class="btn primary" style="font-size:16px;padding:6px 16px" data-act="skyDash">${r ? '🏁 Racing to Finish!' : '🏁 Start New Race with Seo-Ah!'}</button>
-        <button class="btn pink" style="font-size:16px;padding:6px 16px" data-act="skyBoost">⚡ Boost Speed!</button>
+        ${r ? '<span class="critter-pill">✨ Slide your finger up &amp; down to steer through Rainbow Rings!</span>' : '<button class="btn primary" style="font-size:18px;padding:8px 22px" data-act="skyDash">🏁 Race Seo-Ah Again!</button>'}
       </div>
       <div class="race-track" style="width:min(94vw,860px);background:rgba(35,21,66,0.75);border:2px solid rgba(255,217,119,0.7);border-radius:999px;padding:6px 18px;margin-bottom:6px;position:relative;height:38px;display:flex;align-items:center;justify-content:space-between;color:#fff6e6;font-weight:bold;font-size:14px">
         <span>🚩 Start</span>
@@ -916,7 +915,7 @@
         <canvas id="sky-canvas"></canvas>
         <div class="sky-bubble">
           <img src="assets/portrait-seoah.jpg" alt="Seo-Ah">
-          <span id="sky-seoah-msg">Slide your finger on the sky to steer through 🌈 Rainbow Rings for a speed boost!</span>
+          <span id="sky-seoah-msg">${skyState && skyState.bannerMsg ? skyState.bannerMsg : 'You fly forward automatically — just slide up or down to catch 🌈 rings!'}</span>
         </div>
       </div>
     </div>`;
@@ -937,12 +936,13 @@
 
     if (!skyState) {
       skyState = {
-        mx: W * 0.28, my: H * 0.42,
-        tx: W * 0.28, ty: H * 0.42,
-        sx: W * 0.26, sy: H * 0.68,
+        mx: W * 0.26, my: H * 0.45,
+        tx: W * 0.26, ty: H * 0.45,
+        sx: W * 0.22, sy: H * 0.68,
         sTargetY: H * 0.68,
         rings: 0, caught: 0,
-        raceActive: true, mDist: 0, sDist: 0, mBoost: 0,
+        raceActive: true, mDist: 0, sDist: 0, mBoost: 0.6,
+        bannerMsg: '',
         items: [], trail: [], starsBg: [],
         lastTime: performance.now(),
         spawnTick: 0,
@@ -950,37 +950,37 @@
       for (let i = 0; i < 36; i++) {
         skyState.starsBg.push({ x: Math.random() * W, y: Math.random() * H * 0.85, r: 1 + Math.random() * 2, s: 0.4 + Math.random() * 0.8 });
       }
-      for (let i = 0; i < 4; i++) spawnSkyItem(W, H, W * (0.45 + i * 0.18));
+      for (let i = 0; i < 4; i++) spawnSkyItem(W, H, W * (0.42 + i * 0.16));
     }
 
+    // One-finger vertical/free glide — no clicking required!
     const steer = (clientX, clientY) => {
       const r = cv.getBoundingClientRect();
-      skyState.tx = Math.max(60, Math.min(W - 60, clientX - r.left));
-      skyState.ty = Math.max(48, Math.min(H - 44, clientY - r.top));
+      skyState.ty = Math.max(46, Math.min(H - 42, clientY - r.top));
     };
 
-    cv.addEventListener('pointerdown', e => { e.preventDefault(); steer(e.clientX, e.clientY); skyState.mBoost = Math.min(1.8, skyState.mBoost + 0.35); });
-    cv.addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') { e.preventDefault(); steer(e.clientX, e.clientY); } });
-    cv.addEventListener('touchstart', e => { if (e.touches[0]) { e.preventDefault(); steer(e.touches[0].clientX, e.touches[0].clientY); skyState.mBoost = Math.min(1.8, skyState.mBoost + 0.35); } }, { passive: false });
+    cv.addEventListener('pointerdown', e => { e.preventDefault(); steer(e.clientX, e.clientY); });
+    cv.addEventListener('pointermove', e => { e.preventDefault(); steer(e.clientX, e.clientY); });
+    cv.addEventListener('touchstart', e => { if (e.touches[0]) { e.preventDefault(); steer(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
     cv.addEventListener('touchmove', e => { if (e.touches[0]) { e.preventDefault(); steer(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
 
     const SEOAH_FLY_CHEERS = [
       'Whoa, you and Carrot are zooming ahead!! 🐢💨',
       'Daebak! That rainbow ring made you super fast! 🌈',
       'Wait for me, Michelle!! Hehe, racing you is so fun! 🌸🧹',
-      'Hwaiting, bestie!! The finish line is up ahead! 🏁✨',
+      'Hwaiting, bestie!! The finish line is right ahead! 🏁✨',
       'Look at Carrot\'s little ears in the wind! 🐢💖',
     ];
 
     function spawnSkyItem(w, h, startX) {
       const roll = Math.random();
-      const kind = roll < 0.36 ? 'ring' : roll < 0.72 ? 'star' : roll < 0.88 ? 'honey' : 'cloud';
+      const kind = roll < 0.45 ? 'ring' : roll < 0.82 ? 'star' : 'honey';
       skyState.items.push({
         kind,
-        x: startX || (w + 50),
+        x: startX || (w + 45),
         y: 55 + Math.random() * (h - 115),
-        vx: kind === 'cloud' ? 95 : 150 + Math.random() * 45,
-        em: kind === 'star' ? '⭐' : kind === 'honey' ? '🍯' : '☁️',
+        vx: 185 + Math.random() * 35,
+        em: kind === 'star' ? '⭐' : '🍯',
       });
     }
 
@@ -989,59 +989,56 @@
       const dt = Math.min(0.05, (now - skyState.lastTime) / 1000);
       skyState.lastTime = now;
 
-      skyState.mBoost = Math.max(0, skyState.mBoost - dt * 0.65);
+      skyState.mBoost = Math.max(0, skyState.mBoost - dt * 0.7);
 
       if (skyState.raceActive) {
-        // Michelle advances faster when boosted; friendly rubber-banding helps Michelle edge ahead near the finish
-        const catchup = skyState.sDist > skyState.mDist ? 1.5 : 0;
-        skyState.mDist = Math.min(100, skyState.mDist + (5.2 + skyState.mBoost * 6.5 + catchup) * dt);
-        skyState.sDist = Math.min(100, skyState.sDist + (4.7 + Math.sin(now / 600) * 1.1) * dt);
+        // Fast, automatic race (~7-8 seconds total — zero clicking needed!)
+        const catchup = skyState.sDist > skyState.mDist ? 3.5 : 0;
+        skyState.mDist = Math.min(100, skyState.mDist + (13.5 + skyState.mBoost * 10 + catchup) * dt);
+        skyState.sDist = Math.min(99, skyState.sDist + (11.2 + Math.sin(now / 500) * 1.5) * dt);
 
         const mPin = $('#race-michelle-pin');
         const sPin = $('#race-seoah-pin');
         if (mPin) mPin.style.left = Math.round(skyState.mDist) + '%';
         if (sPin) sPin.style.left = Math.round(skyState.sDist) + '%';
 
-        if (skyState.mDist >= 100 || skyState.sDist >= 100) {
+        if (skyState.mDist >= 100) {
           skyState.raceActive = false;
-          const michelleWon = skyState.mDist >= skyState.sDist;
           S.stars += 5;
           const gotTrophy = !S.furniture.trophy && !S.roomItems.some(it => it.id === 'trophy');
           if (gotTrophy) add(S.furniture, 'trophy', 1);
           giveHearts(2);
           SFX.magic();
+          sparkle(window.innerWidth / 2, window.innerHeight / 2, ['🏆', '🌈', '⭐', '💖'], 14);
+          skyState.bannerMsg = gotTrophy
+            ? '🏆 YOU WON!! +5 ⭐, +2 💖 & Golden Broom Trophy sent to your Room!'
+            : '🏁 YOU WON THE RACE!! Daebak, Michelle & Carrot! (+5 ⭐ & +2 💖)';
           save(); render();
-          say([
-            {
-              who: 'seoah',
-              text: michelleWon
-                ? '🏁 DAEBAK!! You and Carrot won the Broomstick Race, Michelle!! You\'re the fastest flyers at Starwillow! 🏆🧹 (+5 ⭐ & +2 💖)'
-                : '🏁 Photo finish!! That was the most exciting broom race ever, Michelle! Let\'s share the winner\'s stars! 🌈🧹 (+5 ⭐ & +2 💖)',
-            },
-            ...(gotTrophy ? [{ who: 'seoah', text: 'Look! Professor Hootsworth gave you the 🏆 Golden Broom Trophy for your bedroom!' }] : []),
-          ]);
           return;
         }
       }
 
-      // Smoothly glide Michelle toward finger target; Seo-Ah races along her lane
-      const leadOffset = Math.max(-70, Math.min(90, (skyState.mDist - skyState.sDist) * 4));
-      skyState.mx += ((skyState.tx + leadOffset * 0.3) - skyState.mx) * Math.min(1, dt * 7.5);
-      skyState.my += (skyState.ty - skyState.my) * Math.min(1, dt * 7.5);
-      if (Math.random() < 0.04) skyState.sTargetY = 65 + Math.random() * (H - 130);
-      const targetSx = Math.max(60, Math.min(W - 90, skyState.mx - leadOffset - 30));
-      skyState.sx += (targetSx - skyState.sx) * Math.min(1, dt * 3.5);
-      skyState.sy += (skyState.sTargetY - skyState.sy) * Math.min(1, dt * 3.2);
+      // Gentle auto-magnet toward nearby rainbow rings so steering feels effortless!
+      const nearItem = skyState.items.find(it => it.x > skyState.mx && it.x - skyState.mx < 160 && Math.abs(it.y - skyState.ty) < 65);
+      const aimY = nearItem ? (skyState.ty * 0.65 + nearItem.y * 0.35) : skyState.ty;
 
-      if (Math.random() < 0.55) {
+      const leadOffset = Math.max(-50, Math.min(80, (skyState.mDist - skyState.sDist) * 3));
+      skyState.mx += ((W * 0.28 + leadOffset * 0.35) - skyState.mx) * Math.min(1, dt * 6);
+      skyState.my += (aimY - skyState.my) * Math.min(1, dt * 9);
+      if (Math.random() < 0.05) skyState.sTargetY = 65 + Math.random() * (H - 130);
+      const targetSx = Math.max(60, Math.min(W - 90, skyState.mx - leadOffset - 35));
+      skyState.sx += (targetSx - skyState.sx) * Math.min(1, dt * 4);
+      skyState.sy += (skyState.sTargetY - skyState.sy) * Math.min(1, dt * 3.5);
+
+      if (Math.random() < 0.6) {
         skyState.trail.push({ x: skyState.mx - 28, y: skyState.my + 4, life: 1, pink: false });
         skyState.trail.push({ x: skyState.sx - 24, y: skyState.sy + 4, life: 1, pink: true });
       }
-      skyState.trail.forEach(t => { t.x -= (110 + skyState.mBoost * 80) * dt; t.life -= dt * 1.9; });
+      skyState.trail.forEach(t => { t.x -= (140 + skyState.mBoost * 90) * dt; t.life -= dt * 2.0; });
       skyState.trail = skyState.trail.filter(t => t.life > 0);
 
       skyState.spawnTick += dt;
-      if (skyState.spawnTick > 0.78) {
+      if (skyState.spawnTick > 0.62) {
         skyState.spawnTick = 0;
         spawnSkyItem(W, H);
       }
@@ -1050,7 +1047,7 @@
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = 'rgba(255, 245, 200, 0.85)';
       skyState.starsBg.forEach(st => {
-        st.x -= (35 + skyState.mBoost * 45) * st.s * dt;
+        st.x -= (55 + skyState.mBoost * 55) * st.s * dt;
         if (st.x < 0) st.x = W;
         ctx.beginPath();
         ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
@@ -1058,14 +1055,14 @@
       });
 
       // Draw Finish Line banner when close to 100%!
-      if (skyState.raceActive && skyState.mDist > 82) {
-        const finX = W - ((skyState.mDist - 82) / 18) * (W - skyState.mx);
+      if (skyState.raceActive && skyState.mDist > 75) {
+        const finX = W - ((skyState.mDist - 75) / 25) * (W - skyState.mx);
         ctx.strokeStyle = 'rgba(255, 217, 119, 0.9)';
         ctx.lineWidth = 6;
         ctx.setLineDash([12, 12]);
         ctx.beginPath(); ctx.moveTo(finX, 20); ctx.lineTo(finX, H - 20); ctx.stroke();
         ctx.setLineDash([]);
-        ctx.font = '32px sans-serif';
+        ctx.font = '34px sans-serif';
         ctx.fillText('🏁', finX, 36);
       }
 
@@ -1077,49 +1074,46 @@
         ctx.fill();
       });
 
-      // Items (rainbow rings, stars, honey, clouds)
+      // Items (rainbow rings, stars, honey)
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       for (let i = skyState.items.length - 1; i >= 0; i--) {
         const it = skyState.items[i];
-        it.x -= (it.vx + skyState.mBoost * 75) * dt;
+        it.x -= (it.vx + skyState.mBoost * 85) * dt;
         if (it.kind === 'ring') {
           ctx.lineWidth = 5;
           ctx.strokeStyle = '#ff9ec7';
-          ctx.beginPath(); ctx.ellipse(it.x, it.y, 16, 34, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(it.x, it.y, 18, 38, 0, 0, Math.PI * 2); ctx.stroke();
           ctx.strokeStyle = '#ffd977';
-          ctx.beginPath(); ctx.ellipse(it.x, it.y, 12, 28, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(it.x, it.y, 13, 31, 0, 0, Math.PI * 2); ctx.stroke();
           ctx.strokeStyle = '#8ef0c8';
-          ctx.beginPath(); ctx.ellipse(it.x, it.y, 8, 22, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(it.x, it.y, 8, 24, 0, 0, Math.PI * 2); ctx.stroke();
         } else {
-          ctx.font = it.kind === 'cloud' ? '44px sans-serif' : '34px sans-serif';
+          ctx.font = '36px sans-serif';
           ctx.fillText(it.em, it.x, it.y);
         }
 
         const distM = Math.hypot(it.x - skyState.mx, it.y - skyState.my);
-        if (distM < 46) {
+        if (distM < 56) {
           if (it.kind === 'ring') {
             skyState.rings++;
-            skyState.mBoost = 1.9;
-            skyState.mDist = Math.min(100, skyState.mDist + 7);
+            skyState.mBoost = 2.0;
+            skyState.mDist = Math.min(100, skyState.mDist + 14);
             S.stars += 2;
             SFX.magic();
             const msgEl = $('#sky-seoah-msg');
             if (msgEl) msgEl.textContent = SEOAH_FLY_CHEERS[skyState.rings % SEOAH_FLY_CHEERS.length];
           } else if (it.kind === 'star') {
             skyState.caught++;
-            skyState.mBoost = Math.min(1.8, skyState.mBoost + 0.8);
-            skyState.mDist = Math.min(100, skyState.mDist + 3.5);
+            skyState.mBoost = Math.min(1.8, skyState.mBoost + 0.9);
+            skyState.mDist = Math.min(100, skyState.mDist + 6);
             S.stars += 1;
             SFX.harvest();
           } else if (it.kind === 'honey') {
             skyState.caught++;
-            skyState.mDist = Math.min(100, skyState.mDist + 3);
+            skyState.mDist = Math.min(100, skyState.mDist + 5);
             S.honey = (S.honey || 0) + 1;
             SFX.coin();
-          } else if (it.kind === 'cloud') {
-            skyState.ty = Math.max(55, skyState.my - 30);
-            SFX.tap();
           }
           updateHud(); save();
           skyState.items.splice(i, 1);
@@ -1183,12 +1177,11 @@
       skyState.raceActive = true;
       skyState.mDist = 0;
       skyState.sDist = 0;
-      skyState.mBoost = 1.0;
+      skyState.mBoost = 0.8;
+      skyState.bannerMsg = '';
     }
     SFX.magic();
     render();
-    const msgEl = $('#sky-seoah-msg');
-    if (msgEl) msgEl.textContent = 'Ready, set, FLY!! First broom to the 🏁 Finish Line wins! 🌈🧹';
   }
 
   // ---------- Class & Rich Seo-Ah Dialogues ----------

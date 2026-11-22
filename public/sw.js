@@ -1,5 +1,5 @@
 // Caches the whole game so it keeps working offline once opened on the iPad.
-const CACHE = 'starwillow-v7';
+const CACHE = 'starwillow-v8';
 const FILES = [
   '/', '/index.html', '/style.css', '/game.js', '/manifest.webmanifest',
   '/assets/banner.jpg', '/assets/bg-room.jpg', '/assets/bg-garden.jpg', '/assets/bg-bakery.jpg',
