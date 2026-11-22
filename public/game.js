@@ -934,6 +934,7 @@
     cv.height = H * dpr;
     ctx.scale(dpr, dpr);
 
+    let spawnCount = 0;
     if (!skyState) {
       skyState = {
         mx: W * 0.26, my: H * 0.45,
@@ -967,20 +968,38 @@
     const SEOAH_FLY_CHEERS = [
       'Whoa, you and Carrot are zooming ahead!! 🐢💨',
       'Daebak! That rainbow ring made you super fast! 🌈',
-      'Wait for me, Michelle!! Hehe, racing you is so fun! 🌸🧹',
-      'Hwaiting, bestie!! The finish line is right ahead! 🏁✨',
+      'Hehe, watch out for those storm clouds, Michelle! 🌸🧹',
+      'Hwaiting, bestie!! It\'s neck and neck to the finish! 🏁✨',
       'Look at Carrot\'s little ears in the wind! 🐢💖',
     ];
 
     function spawnSkyItem(w, h, startX) {
-      const roll = Math.random();
-      const kind = roll < 0.45 ? 'ring' : roll < 0.82 ? 'star' : 'honey';
+      spawnCount++;
+      // Every 3rd item is a Storm Cloud aimed near Michelle's current lane so she has to dodge!
+      // Rainbow Rings spawn at a height away from Michelle's current lane so she has to steer to catch them!
+      let kind;
+      if (spawnCount % 3 === 0) kind = 'cloud';
+      else if (spawnCount % 3 === 1) kind = 'ring';
+      else kind = Math.random() < 0.65 ? 'star' : 'honey';
+
+      let itemY;
+      if (kind === 'cloud') {
+        itemY = Math.max(52, Math.min(h - 52, skyState.my + (Math.random() * 36 - 18)));
+      } else if (kind === 'ring') {
+        // Spawn ring in the opposite half of the sky from Michelle's current position so she must steer to it!
+        itemY = skyState.my < h * 0.5
+          ? h * 0.58 + Math.random() * (h * 0.28)
+          : 55 + Math.random() * (h * 0.28);
+      } else {
+        itemY = 52 + Math.random() * (h - 108);
+      }
+
       skyState.items.push({
         kind,
         x: startX || (w + 45),
-        y: 55 + Math.random() * (h - 115),
-        vx: 185 + Math.random() * 35,
-        em: kind === 'star' ? '⭐' : '🍯',
+        y: itemY,
+        vx: kind === 'cloud' ? 185 + Math.random() * 30 : 195 + Math.random() * 35,
+        em: kind === 'star' ? '⭐' : kind === 'honey' ? '🍯' : '⛈️',
       });
     }
 
@@ -989,44 +1008,49 @@
       const dt = Math.min(0.05, (now - skyState.lastTime) / 1000);
       skyState.lastTime = now;
 
-      skyState.mBoost = Math.max(0, skyState.mBoost - dt * 0.7);
+      if (skyState.mBoost > 0) skyState.mBoost = Math.max(0, skyState.mBoost - dt * 1.1);
+      else if (skyState.mBoost < 0) skyState.mBoost = Math.min(0, skyState.mBoost + dt * 1.0);
 
       if (skyState.raceActive) {
-        // Fast, automatic race (~7-8 seconds total — zero clicking needed!)
-        const catchup = skyState.sDist > skyState.mDist ? 3.5 : 0;
-        skyState.mDist = Math.min(100, skyState.mDist + (13.5 + skyState.mBoost * 10 + catchup) * dt);
-        skyState.sDist = Math.min(99, skyState.sDist + (11.2 + Math.sin(now / 500) * 1.5) * dt);
+        // Real race challenge: Seo-Ah flies at ~12.5%/sec, while Michelle's base unboosted speed is 7.5%/sec.
+        // Michelle MUST steer to Rainbow Rings and dodge Storm Clouds (⛈️) or Seo-Ah wins!
+        skyState.mDist = Math.max(0, Math.min(100, skyState.mDist + (7.5 + skyState.mBoost * 7.5) * dt));
+        skyState.sDist = Math.min(100, skyState.sDist + (12.5 + Math.sin(now / 480) * 1.0) * dt);
 
         const mPin = $('#race-michelle-pin');
         const sPin = $('#race-seoah-pin');
         if (mPin) mPin.style.left = Math.round(skyState.mDist) + '%';
         if (sPin) sPin.style.left = Math.round(skyState.sDist) + '%';
 
-        if (skyState.mDist >= 100) {
+        if (skyState.mDist >= 100 || skyState.sDist >= 100) {
           skyState.raceActive = false;
-          S.stars += 5;
-          const gotTrophy = !S.furniture.trophy && !S.roomItems.some(it => it.id === 'trophy');
-          if (gotTrophy) add(S.furniture, 'trophy', 1);
-          giveHearts(2);
-          SFX.magic();
-          sparkle(window.innerWidth / 2, window.innerHeight / 2, ['🏆', '🌈', '⭐', '💖'], 14);
-          skyState.bannerMsg = gotTrophy
-            ? '🏆 YOU WON!! +5 ⭐, +2 💖 & Golden Broom Trophy sent to your Room!'
-            : '🏁 YOU WON THE RACE!! Daebak, Michelle & Carrot! (+5 ⭐ & +2 💖)';
+          const michelleWon = skyState.mDist >= skyState.sDist;
+          if (michelleWon) {
+            S.stars += 5;
+            const gotTrophy = !S.furniture.trophy && !S.roomItems.some(it => it.id === 'trophy');
+            if (gotTrophy) add(S.furniture, 'trophy', 1);
+            giveHearts(2);
+            SFX.magic();
+            sparkle(window.innerWidth / 2, window.innerHeight / 2, ['🏆', '🌈', '⭐', '💖'], 14);
+            skyState.bannerMsg = gotTrophy
+              ? '🏆 YOU BEAT SEO-AH!! +5 ⭐, +2 💖 & Golden Broom Trophy sent to your Room!'
+              : '🏁 YOU WON THE RACE!! Great steering through the rings, Michelle! (+5 ⭐ & +2 💖)';
+          } else {
+            S.stars += 1;
+            SFX.oops();
+            skyState.bannerMsg = '🌸🏁 Seo-Ah Won the Race! "Hehe, I beat you! Steer into 🌈 Rings & dodge ⛈️ Clouds to beat me!" (+1 ⭐)';
+          }
           save(); render();
           return;
         }
       }
 
-      // Gentle auto-magnet toward nearby rainbow rings so steering feels effortless!
-      const nearItem = skyState.items.find(it => it.x > skyState.mx && it.x - skyState.mx < 160 && Math.abs(it.y - skyState.ty) < 65);
-      const aimY = nearItem ? (skyState.ty * 0.65 + nearItem.y * 0.35) : skyState.ty;
-
-      const leadOffset = Math.max(-50, Math.min(80, (skyState.mDist - skyState.sDist) * 3));
-      skyState.mx += ((W * 0.28 + leadOffset * 0.35) - skyState.mx) * Math.min(1, dt * 6);
-      skyState.my += (aimY - skyState.my) * Math.min(1, dt * 9);
-      if (Math.random() < 0.05) skyState.sTargetY = 65 + Math.random() * (H - 130);
-      const targetSx = Math.max(60, Math.min(W - 90, skyState.mx - leadOffset - 35));
+      // Direct finger steering (no auto-magnet so Michelle's steering skill really counts!)
+      const leadOffset = Math.max(-65, Math.min(85, (skyState.mDist - skyState.sDist) * 2.8));
+      skyState.mx += ((W * 0.28 + leadOffset * 0.45) - skyState.mx) * Math.min(1, dt * 6);
+      skyState.my += (skyState.ty - skyState.my) * Math.min(1, dt * 9.5);
+      if (Math.random() < 0.05) skyState.sTargetY = 60 + Math.random() * (H - 120);
+      const targetSx = Math.max(60, Math.min(W - 90, skyState.mx - leadOffset));
       skyState.sx += (targetSx - skyState.sx) * Math.min(1, dt * 4);
       skyState.sy += (skyState.sTargetY - skyState.sy) * Math.min(1, dt * 3.5);
 
@@ -1034,11 +1058,11 @@
         skyState.trail.push({ x: skyState.mx - 28, y: skyState.my + 4, life: 1, pink: false });
         skyState.trail.push({ x: skyState.sx - 24, y: skyState.sy + 4, life: 1, pink: true });
       }
-      skyState.trail.forEach(t => { t.x -= (140 + skyState.mBoost * 90) * dt; t.life -= dt * 2.0; });
+      skyState.trail.forEach(t => { t.x -= (140 + skyState.mBoost * 70) * dt; t.life -= dt * 2.0; });
       skyState.trail = skyState.trail.filter(t => t.life > 0);
 
       skyState.spawnTick += dt;
-      if (skyState.spawnTick > 0.62) {
+      if (skyState.spawnTick > 0.56) {
         skyState.spawnTick = 0;
         spawnSkyItem(W, H);
       }
@@ -1047,16 +1071,17 @@
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = 'rgba(255, 245, 200, 0.85)';
       skyState.starsBg.forEach(st => {
-        st.x -= (55 + skyState.mBoost * 55) * st.s * dt;
+        st.x -= Math.max(20, 55 + skyState.mBoost * 45) * st.s * dt;
         if (st.x < 0) st.x = W;
         ctx.beginPath();
         ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // Draw Finish Line banner when close to 100%!
-      if (skyState.raceActive && skyState.mDist > 75) {
-        const finX = W - ((skyState.mDist - 75) / 25) * (W - skyState.mx);
+      // Draw Finish Line banner when either racer is close to 100%!
+      const leadPct = Math.max(skyState.mDist, skyState.sDist);
+      if (skyState.raceActive && leadPct > 75) {
+        const finX = W - ((leadPct - 75) / 25) * (W * 0.72);
         ctx.strokeStyle = 'rgba(255, 217, 119, 0.9)';
         ctx.lineWidth = 6;
         ctx.setLineDash([12, 12]);
@@ -1074,12 +1099,12 @@
         ctx.fill();
       });
 
-      // Items (rainbow rings, stars, honey)
+      // Items (rainbow rings, stars, honey, storm clouds)
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       for (let i = skyState.items.length - 1; i >= 0; i--) {
         const it = skyState.items[i];
-        it.x -= (it.vx + skyState.mBoost * 85) * dt;
+        it.x -= Math.max(90, it.vx + skyState.mBoost * 65) * dt;
         if (it.kind === 'ring') {
           ctx.lineWidth = 5;
           ctx.strokeStyle = '#ff9ec7';
@@ -1089,31 +1114,38 @@
           ctx.strokeStyle = '#8ef0c8';
           ctx.beginPath(); ctx.ellipse(it.x, it.y, 8, 24, 0, 0, Math.PI * 2); ctx.stroke();
         } else {
-          ctx.font = '36px sans-serif';
+          ctx.font = it.kind === 'cloud' ? '42px sans-serif' : '34px sans-serif';
           ctx.fillText(it.em, it.x, it.y);
         }
 
         const distM = Math.hypot(it.x - skyState.mx, it.y - skyState.my);
-        if (distM < 56) {
+        if (distM < 44) {
           if (it.kind === 'ring') {
             skyState.rings++;
-            skyState.mBoost = 2.0;
-            skyState.mDist = Math.min(100, skyState.mDist + 14);
+            skyState.mBoost = 1.25;
+            skyState.mDist = Math.min(100, skyState.mDist + 8.5);
             S.stars += 2;
             SFX.magic();
             const msgEl = $('#sky-seoah-msg');
             if (msgEl) msgEl.textContent = SEOAH_FLY_CHEERS[skyState.rings % SEOAH_FLY_CHEERS.length];
           } else if (it.kind === 'star') {
             skyState.caught++;
-            skyState.mBoost = Math.min(1.8, skyState.mBoost + 0.9);
-            skyState.mDist = Math.min(100, skyState.mDist + 6);
+            skyState.mBoost = Math.min(1.2, Math.max(0, skyState.mBoost) + 0.65);
+            skyState.mDist = Math.min(100, skyState.mDist + 4.0);
             S.stars += 1;
             SFX.harvest();
           } else if (it.kind === 'honey') {
             skyState.caught++;
-            skyState.mDist = Math.min(100, skyState.mDist + 5);
+            skyState.mDist = Math.min(100, skyState.mDist + 3.0);
             S.honey = (S.honey || 0) + 1;
             SFX.coin();
+          } else if (it.kind === 'cloud') {
+            // Storm cloud slows Michelle down and pushes her back so Seo-Ah passes her!
+            skyState.mBoost = -0.85;
+            skyState.mDist = Math.max(0, skyState.mDist - 7.5);
+            SFX.oops();
+            const msgEl = $('#sky-seoah-msg');
+            if (msgEl) msgEl.textContent = '⛈️ Oof, a storm cloud slowed you down! Dodge the ⛈️ clouds and aim for 🌈 rings!';
           }
           updateHud(); save();
           skyState.items.splice(i, 1);
