@@ -1,0 +1,7 @@
+services:
+  starwillow:
+    command: node server.mjs
+    portal:
+      title: "Michelle's Witch School"
+      description: "Cozy iPad game for Michelle featuring Carrot the turtle and best friend Seo-Ah"
+    review: false

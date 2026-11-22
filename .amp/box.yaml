@@ -1,0 +1,8 @@
+source: false
+artifacts:
+  - public
+  - server.mjs
+  - package.json
+services:
+  web:
+    command: node server.mjs

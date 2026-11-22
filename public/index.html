@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Witch School">
+<meta name="theme-color" content="#5b3f8c">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" href="assets/icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Starwillow Witch School</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="title" class="title-screen">
+    <div class="title-card">
+      <h1>Starwillow<br><span>Witch School</span></h1>
+      <p class="subtitle">with Michelle, Seo-Ah &amp; Carrot 🐢</p>
+      <button class="big-btn" data-act="play">▶ Play</button>
+    </div>
+  </div>
+
+  <div id="game" class="hidden">
+    <header class="hud">
+      <div class="hud-left">
+        <img src="assets/portrait-michelle.jpg" alt="" class="hud-avatar">
+        <div class="hud-name">Michelle</div>
+        <div class="pill" title="Stars">⭐ <b id="hud-stars">0</b></div>
+        <div class="pill" title="Friendship with Seo-Ah">💖 <b id="hud-hearts">0</b></div>
+      </div>
+      <div class="hud-right">
+        <button class="icon-btn" data-act="bag" aria-label="Bag">🎒</button>
+        <button class="icon-btn" data-act="book" aria-label="Recipe book">📖</button>
+        <button class="icon-btn" data-act="settings" aria-label="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <main id="scene"></main>
+
+    <button id="carrot-buddy" data-act="carrot" aria-label="Carrot the turtle">
+      <img src="assets/portrait-carrot.jpg" alt="Carrot">
+    </button>
+
+    <nav class="nav">
+      <button data-act="go" data-scene="garden">🌱<span>Garden</span></button>
+      <button data-act="go" data-scene="cauldron">🧪<span>Potions</span></button>
+      <button data-act="go" data-scene="class">🏫<span>Class</span></button>
+      <button data-act="go" data-scene="room">🏡<span>Room</span></button>
+      <button data-act="go" data-scene="shop">🛍️<span>Shop</span></button>
+    </nav>
+  </div>
+
+  <div id="modal" class="modal hidden"><div class="modal-card" id="modal-card"></div></div>
+  <div id="dialog" class="dialog hidden" data-act="dialog-next">
+    <div class="dialog-box">
+      <div class="dialog-avatar" id="dialog-avatar"></div>
+      <div class="dialog-body">
+        <div class="dialog-name" id="dialog-name"></div>
+        <div class="dialog-text" id="dialog-text"></div>
+        <div class="dialog-tap">tap to continue ▸</div>
+      </div>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <div id="fx"></div>
+
+<script src="game.js"></script>
+</body>
+</html>

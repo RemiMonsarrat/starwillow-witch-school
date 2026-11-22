@@ -1,0 +1,12 @@
+{
+  "name": "Starwillow Witch School",
+  "short_name": "Witch School",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2e2150",
+  "theme_color": "#5b3f8c",
+  "icons": [
+    { "src": "assets/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
