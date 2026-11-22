@@ -63,8 +63,9 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 .pill { background: rgba(255,255,255,.15); padding: 6px 14px; border-radius: 999px; font-size: 20px; }
 .icon-btn {
   width: 52px; height: 52px; border-radius: 16px; font-size: 28px;
-  background: rgba(255,255,255,.15);
+  background: rgba(255,255,255,.15); color: var(--gold);
 }
+#music-btn { background: rgba(255, 207, 90, 0.25); box-shadow: inset 0 0 0 2px rgba(255, 207, 90, 0.55); }
 .icon-btn:active { transform: scale(.92); }
 
 #scene { flex: 1; position: relative; overflow: hidden; }
@@ -100,12 +101,92 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 .scene .hint { margin: 0 0 14px; color: var(--cream); opacity: .92; font-size: 18px; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
 
 .bg-garden { background: linear-gradient(#b9a2ef 0%, #f3b6d3 35%, #9fd88e 36%, #6fb86a 100%); }
+.bg-bakery { background: linear-gradient(#ffe3ec 0%, #ffd1dc 52%, #e0a97b 53%, #c48756 100%); }
 .bg-cauldron { background: radial-gradient(circle at 50% 60%, #6b4a9c 0%, #3a2766 60%, #261a45 100%); }
 .bg-class { background: linear-gradient(#e8c79a 0%, #e8c79a 60%, #a8754d 60%, #8e5f3c 100%); }
 .bg-room { background: linear-gradient(#f6d7e6 0%, #f6d7e6 55%, #d9b48f 55%, #c49a72 100%); }
 .bg-shop { background: linear-gradient(#ffe2a8 0%, #ffc98a 100%); }
-.bg-class h2, .bg-room h2, .bg-shop h2 { color: var(--ink); text-shadow: 0 2px 0 rgba(255,255,255,.6); }
-.bg-class .hint, .bg-room .hint, .bg-shop .hint { color: var(--ink); text-shadow: none; }
+.bg-bakery h2, .bg-class h2, .bg-room h2, .bg-shop h2 { color: var(--ink); text-shadow: 0 2px 0 rgba(255,255,255,.6); }
+.bg-bakery .hint, .bg-class .hint, .bg-room .hint, .bg-shop .hint { color: var(--ink); text-shadow: none; }
+
+/* Butterflies & Bees in Garden */
+.critter-bar {
+  display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 6px; z-index: 3;
+}
+.critter-pill {
+  background: rgba(255, 250, 240, 0.92); color: var(--ink); font-weight: bold;
+  padding: 6px 14px; border-radius: 999px; font-size: 16px;
+  box-shadow: 0 3px 0 rgba(0,0,0,.15);
+}
+.critter-sky {
+  position: relative; width: min(92vw, 680px); height: 86px;
+  margin: 0 auto 4px; pointer-events: none;
+}
+.critter {
+  position: absolute; pointer-events: auto;
+  width: 66px; height: 66px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,.85) 0%, rgba(255,255,255,0) 72%);
+  font-size: 42px; display: flex; align-items: center; justify-content: center;
+  animation: flutter 3.2s ease-in-out infinite alternate;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.22));
+}
+.critter:active { transform: scale(1.25); }
+@keyframes flutter {
+  0%   { transform: translate(0, 0) rotate(-6deg); }
+  50%  { transform: translate(18px, -14px) rotate(8deg); }
+  100% { transform: translate(-14px, 8px) rotate(-4deg); }
+}
+
+/* Bakery */
+.oven-card {
+  background: #fffaf0; border-radius: 24px; padding: 14px 18px;
+  width: min(92vw, 680px); box-shadow: 0 6px 0 #c9936b;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.oven-visual {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  font-size: 48px; background: radial-gradient(circle, #ffe0b2, #d4845a);
+  border: 4px solid #8c4a27; border-radius: 22px; padding: 8px 22px; min-width: 220px;
+}
+.oven-visual.baking { animation: wiggle .28s linear infinite; box-shadow: 0 0 24px #ff9a3c; }
+.bakery-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 10px; width: min(94vw, 720px); margin-top: 10px;
+}
+.bake-item {
+  background: #fffaf0; border-radius: 20px; padding: 10px 12px;
+  box-shadow: 0 5px 0 #d39f76; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px;
+}
+.bake-item .em { font-size: 42px; }
+.bake-item .nm { font-weight: bold; font-size: 16px; }
+.bake-item small { font-size: 13px; opacity: .82; }
+
+/* Carrot's Little House in the Room */
+.carrot-house {
+  background: linear-gradient(135deg, #fff8e7, #ffe9c9);
+  border: 4px solid #e09a4f; border-radius: 24px;
+  padding: 10px 14px; width: min(94vw, 640px); margin-bottom: 10px;
+  box-shadow: 0 6px 0 #c47d38;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+}
+.carrot-house-avatar {
+  position: relative; width: 78px; height: 78px; border-radius: 50%;
+  border: 4px solid #ff9a3c; overflow: hidden; flex: none; background: #fff;
+}
+.carrot-house-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.carrot-house-roof {
+  position: absolute; top: -2px; left: 6px; font-size: 22px;
+}
+.carrot-house-info { flex: 1; min-width: 180px; }
+.carrot-house-title { font-weight: bold; font-size: 19px; color: #6e3b10; }
+.carrot-bowls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; font-size: 15px; }
+.bowl-tag {
+  background: #fff; padding: 4px 10px; border-radius: 999px;
+  border: 2px solid #f0c27b; font-weight: bold;
+}
+.carrot-house-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.carrot-house-btns .btn { font-size: 16px; padding: 8px 14px; }
 
 /* Garden */
 .plots { display: grid; grid-template-columns: repeat(3, minmax(110px, 170px)); gap: 18px; margin-top: 8px; }
@@ -175,8 +256,8 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 .chalk { background: #2f4a3a; color: #f1f7ee; border: 8px solid #8a5a3c; border-radius: 12px; padding: 8px 18px; font-size: 18px; margin-bottom: 10px; text-align: center; }
 
 /* Room */
-.room-grid { display: grid; grid-template-columns: repeat(6, clamp(44px, 8.5vh, 86px)); margin-top: 10px; gap: 6px; padding: 10px; background: rgba(255,255,255,.35); border-radius: 18px; }
-.tile { aspect-ratio: 1; border-radius: 12px; background: rgba(255,255,255,.55); font-size: 40px; display: flex; align-items: center; justify-content: center; }
+.room-grid { display: grid; grid-template-columns: repeat(6, clamp(38px, 6.2vh, 68px)); margin-top: 6px; gap: 5px; padding: 8px; background: rgba(255,255,255,.35); border-radius: 18px; }
+.tile { aspect-ratio: 1; border-radius: 10px; background: rgba(255,255,255,.55); font-size: 30px; display: flex; align-items: center; justify-content: center; }
 .tile:active { transform: scale(.92); }
 .tray { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 640px; }
 .tray button { font-size: 34px; padding: 6px 10px; border-radius: 14px; background: #fff; box-shadow: 0 4px 0 #d3b9c6; position: relative; }
@@ -213,7 +294,7 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 .dialog-tap { font-size: 14px; opacity: .6; text-align: right; margin-top: 6px; }
 @keyframes pop { from { transform: scale(.85); opacity: 0; } }
 
-.toast { position: fixed; top: calc(80px + var(--safe-top)); left: 50%; transform: translateX(-50%); background: var(--cream); color: var(--ink); padding: 10px 22px; border-radius: 999px; font-size: 20px; font-weight: bold; z-index: 30; box-shadow: 0 6px 18px rgba(0,0,0,.3); animation: pop .2s ease-out; text-align: center; max-width: 90vw; }
+.toast { position: fixed; bottom: calc(84px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); background: var(--cream); color: var(--ink); padding: 10px 22px; border-radius: 999px; font-size: 19px; font-weight: bold; z-index: 30; box-shadow: 0 6px 18px rgba(0,0,0,.3); animation: pop .2s ease-out; text-align: center; max-width: 88vw; pointer-events: none; }
 
 /* FX */
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }

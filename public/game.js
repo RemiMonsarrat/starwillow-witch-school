@@ -72,21 +72,41 @@
     'Michelle! Did you finish the homework? I tried to brew a Float Potion and my hat floated away! 😂',
     'Professor Hootsworth fell asleep in class again. Shh, don\'t tell!',
     'My halmeoni (that\'s grandma!) makes the best tteokbokki. I\'ll bring you some!',
-    'Carrot looks extra shiny today. I think he likes you a LOT.',
-    'When we\'re grown-up witches, let\'s open a potion café together!',
+    'Carrot looks extra shiny today. I think she likes you a LOT.',
+    'When we\'re grown-up witches, let\'s open a potion & bakery café together!',
     'I love starflowers. They look like tiny suns. 🌼',
-    'Want to have a sleepover in the dorm? We can read spell books with flashlights!',
+    'Want to have a sleepover in the dorm? We can bake cookies and read spell books!',
     'I practiced my broom flying! I only crashed into the hedge twice. 🧹',
   ];
 
   const CARROT_LINES = [
-    '*happy turtle noises* 🐢 (Carrot wants a snack!)',
+    '*happy turtle noises* 🐢 (Carrot wants a snack in her house!)',
     'Carrot does a slow, proud little spin.',
     'Carrot blinks at you very slowly. That means "I love you" in turtle.',
-    'Carrot nudges your boot toward the garden. Time to water?',
-    'Carrot yawns. Even turtles get sleepy at witch school.',
-    'Carrot is trying to stir the cauldron with his tiny foot. So helpful!',
+    'Carrot nudges your boot toward the garden. Time to catch butterflies?',
+    'Carrot yawns inside her little shell. Even girl turtles get sleepy at witch school.',
+    'Carrot is trying to stir the cauldron with her tiny flipper. So helpful!',
   ];
+
+  const CRITTERS = {
+    monarch:  { name: 'Sunny Monarch Butterfly', em: '🦋', kind: 'butterfly' },
+    moonwing: { name: 'Moonwing Butterfly',      em: '🦋', kind: 'butterfly' },
+    blossom:  { name: 'Blossom Pink Butterfly',  em: '🌸', kind: 'butterfly' },
+    starwing: { name: 'Golden Star Butterfly',   em: '✨', kind: 'butterfly' },
+    honeybee: { name: 'Fuzzy Honeybee',          em: '🐝', kind: 'bee', honey: 1 },
+    queenbee: { name: 'Queen Bumblebee',         em: '🐝', kind: 'bee', honey: 2 },
+  };
+
+  const BAKES = {
+    sugar_cookie:    { name: 'Star Sugar Cookies',        em: '🍪', kind: 'Cookies', cost: {},                              sell: 3,  desc: 'Warm buttery star-shaped cookies from the pantry!' },
+    honey_cookie:    { name: 'Golden Honey Cookies',      em: '🍪', kind: 'Cookies', cost: { honey: 1 },                    sell: 6,  desc: 'Baked with sweet honey from the garden bees!' },
+    berry_cookie:    { name: 'Moonberry Chip Cookies',    em: '🍪', kind: 'Cookies', cost: { moonberry: 1 },                sell: 6,  desc: 'Chewy cookies with purple moonberry chips.' },
+    berry_tart:      { name: 'Sparkling Moonberry Tart',  em: '🥧', kind: 'Tart',    cost: { moonberry: 1, starflower: 1 }, sell: 9,  desc: 'Golden flaky tart filled with sparkly berry jam.' },
+    blossom_tart:    { name: 'Fairy Blossom Fruit Tart',  em: '🥧', kind: 'Tart',    cost: { fairyblossom: 1 },             sell: 7,  desc: 'Sweet custard topped with glazed pink petals.' },
+    pumpkin_tart:    { name: 'Pumpkin Spice Witch Tart',  em: '🥧', kind: 'Tart',    cost: { pumpkin: 1 },                  sell: 9,  desc: 'Cozy autumn tart dusted with cinnamon stars.' },
+    carrot_cake:     { name: 'Carrot\'s Carrot Cake',     em: '🎂', kind: 'Cake',    cost: { carrot: 1 },                   sell: 8,  desc: 'Topped with cream frosting — Carrot\'s favorite!' },
+    strawberry_cake: { name: 'Seo-Ah\'s Berry Cloud Cake',em: '🍰', kind: 'Cake',    cost: { fairyblossom: 1, moonberry: 1 }, sell: 11, desc: 'Fluffy two-tier cake — Seo-Ah loves it!' },
+  };
 
   const LESSONS = [
     { want: 'crop:moonberry',   reward: 5,  intro: 'Welcome to Plant Magic class! Every witch starts with a garden. Grow and bring me one Moonberry.', hint: 'Plant a Moonberry seed in the Garden, water it, and wait for it to sparkle.' },
@@ -120,6 +140,10 @@
       hearts: 0,
       seeds: { moonberry: 3, carrot: 2, starflower: 2 },
       crops: {},
+      honey: 1,
+      bakes: {},
+      critters: {},
+      carrotCare: { fed: false, watered: false, loves: 1 },
       potions: {},
       furniture: {},
       room,
@@ -128,8 +152,10 @@
       lesson: 0,
       bonusLesson: null,
       giftsGiven: [],
-      daily: { talked: false, gifted: false, carrot: false, word: 0 },
+      daily: { talked: false, gifted: false, carrot: false, wateredCarrot: false, word: 0 },
       sound: true,
+      music: true,
+      song: 0,
       savedAt: Date.now(),
     };
   }
@@ -139,12 +165,35 @@
   let pot = S.pot || [];
   let stir = 0;
   let roomSel = null;
+  let ovenBusy = false;
+  let gardenCritters = [];
+
+  function spawnCritters() {
+    const keys = Object.keys(CRITTERS);
+    gardenCritters = Array.from({ length: 3 }, (_, idx) => {
+      const id = keys[Math.floor(Math.random() * keys.length)];
+      return {
+        uid: Date.now() + '-' + idx + '-' + Math.random(),
+        id,
+        left: 10 + idx * 32 + Math.floor(Math.random() * 14),
+        top: 6 + Math.floor(Math.random() * 24),
+        delay: (idx * 0.6).toFixed(1),
+      };
+    });
+  }
+  spawnCritters();
 
   function load() {
     try {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return newState();
       const s = Object.assign(newState(), JSON.parse(raw));
+      s.bakes = s.bakes || {};
+      s.critters = s.critters || {};
+      s.carrotCare = Object.assign({ fed: false, watered: false, loves: 1 }, s.carrotCare || {});
+      if (typeof s.honey !== 'number') s.honey = 1;
+      if (typeof s.music !== 'boolean') s.music = true;
+      if (typeof s.song !== 'number') s.song = 0;
       // Plants keep growing while the game is closed, until they need water again.
       const away = Math.max(0, (Date.now() - (s.savedAt || Date.now())) / 1000);
       s.plots.forEach(p => { if (p) growPlot(p, away); });
@@ -162,12 +211,177 @@
   const add = (bag, id, n = 1) => { bag[id] = (bag[id] || 0) + n; if (bag[id] <= 0) delete bag[id]; };
   const $ = sel => document.querySelector(sel);
 
-  // ---------- Sound ----------
+  // ---------- Sound & Cozy Background Music ----------
   let audio;
+  let musicMaster;
+  let musicTimer = null;
+  let musicStep = 0;
+
+  // Midi note -> Hz
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+
+  // Three full cozy looping songs (melody + warm harp chord arpeggios + bass)
+  const SONGS = [
+    {
+      name: '🌸 Starwillow Breeze',
+      tempo: 340, // ms per eighth-note step
+      // F major / D minor pentatonic cozy waltz-like 32-step loop
+      melody: [
+        77, null, 76, 72,  74, null, 69, null,
+        72, null, 74, 76,  77, null, 81, null,
+        84, null, 81, 77,  76, null, 74, 72,
+        74, null, 72, 69,  65, null, null, null,
+      ],
+      harp: [
+        65, 69, 72, 69,  62, 65, 69, 65,
+        60, 64, 67, 64,  65, 69, 72, 69,
+        67, 70, 74, 70,  65, 69, 72, 69,
+        62, 67, 70, 67,  65, 69, 72, 69,
+      ],
+      bass: [
+        53, null, null, null,  50, null, null, null,
+        48, null, null, null,  53, null, null, null,
+        55, null, null, null,  53, null, null, null,
+        50, null, 55, null,    53, null, null, null,
+      ],
+    },
+    {
+      name: '🧪 Bubbling Starlight',
+      tempo: 300,
+      // Playful Little-Witch celesta & plucked harp in G major
+      melody: [
+        79, null, 83, 81,  79, null, 74, null,
+        76, 79, 81, null,  79, null, null, null,
+        83, null, 86, 83,  81, null, 79, 76,
+        74, 76, 79, 76,    74, null, null, null,
+      ],
+      harp: [
+        67, 71, 74, 71,  64, 67, 71, 67,
+        60, 64, 67, 64,  62, 66, 69, 66,
+        67, 71, 74, 71,  64, 67, 71, 67,
+        62, 67, 71, 67,  67, 71, 74, 71,
+      ],
+      bass: [
+        55, null, null, null,  52, null, null, null,
+        48, null, null, null,  50, null, null, null,
+        55, null, null, null,  52, null, null, null,
+        50, null, 54, null,    55, null, null, null,
+      ],
+    },
+    {
+      name: '🌙 Moonberry Lullaby',
+      tempo: 420,
+      // Dreamy music-box lullaby in C major / A minor
+      melody: [
+        76, null, 79, null,  76, null, 72, null,
+        74, null, 77, null,  76, null, null, null,
+        81, null, 79, null,  76, null, 72, 74,
+        72, null, 69, null,  72, null, null, null,
+      ],
+      harp: [
+        60, 64, 67, 72,  57, 60, 64, 69,
+        62, 65, 69, 74,  60, 64, 67, 72,
+        65, 69, 72, 77,  60, 64, 67, 72,
+        62, 67, 71, 67,  60, 64, 67, 72,
+      ],
+      bass: [
+        48, null, null, null,  45, null, null, null,
+        50, null, null, null,  48, null, null, null,
+        53, null, null, null,  48, null, null, null,
+        43, null, null, null,  48, null, null, null,
+      ],
+    },
+  ];
+
+  function ensureAudio() {
+    try {
+      if (!audio) {
+        audio = new (window.AudioContext || window.webkitAudioContext)();
+        musicMaster = audio.createGain();
+        // Gentle low-pass filter so all notes sound warm and soft on iPad speakers
+        const warmth = audio.createBiquadFilter();
+        warmth.type = 'lowpass';
+        warmth.frequency.value = 2400;
+        musicMaster.gain.value = 0.28;
+        musicMaster.connect(warmth).connect(audio.destination);
+      }
+      if (audio.state === 'suspended') audio.resume();
+    } catch {}
+  }
+
+  function playMusicNote(midi, durSec, voice) {
+    if (!audio || !musicMaster || !S.music) return;
+    const t0 = audio.currentTime;
+    const freq = mtof(midi);
+
+    if (voice === 'celesta') {
+      // Warm bell-like music box: fundamental sine + soft octave overtone
+      const o1 = audio.createOscillator();
+      const o2 = audio.createOscillator();
+      const g = audio.createGain();
+      const g2 = audio.createGain();
+      o1.type = 'sine'; o1.frequency.value = freq;
+      o2.type = 'triangle'; o2.frequency.value = freq * 2;
+      g2.gain.value = 0.12;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(0.22, t0 + 0.025);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + durSec * 2.4);
+      o1.connect(g);
+      o2.connect(g2).connect(g);
+      g.connect(musicMaster);
+      o1.start(t0); o2.start(t0);
+      o1.stop(t0 + durSec * 2.5); o2.stop(t0 + durSec * 2.5);
+    } else if (voice === 'harp') {
+      const o = audio.createOscillator();
+      const g = audio.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(0.11, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + durSec * 1.9);
+      o.connect(g).connect(musicMaster);
+      o.start(t0); o.stop(t0 + durSec * 2.0);
+    } else if (voice === 'bass') {
+      const o = audio.createOscillator();
+      const g = audio.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(0.14, t0 + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + durSec * 3.4);
+      o.connect(g).connect(musicMaster);
+      o.start(t0); o.stop(t0 + durSec * 3.5);
+    }
+  }
+
+  function stepMusic() {
+    if (!S.music || document.hidden) return;
+    ensureAudio();
+    const song = SONGS[S.song || 0] || SONGS[0];
+    const i = musicStep % song.melody.length;
+    const stepSec = song.tempo / 1000;
+    if (song.melody[i]) playMusicNote(song.melody[i], stepSec * 1.6, 'celesta');
+    if (song.harp[i]) playMusicNote(song.harp[i], stepSec * 1.2, 'harp');
+    if (song.bass[i]) playMusicNote(song.bass[i], stepSec * 2.5, 'bass');
+    musicStep = (musicStep + 1) % song.melody.length;
+    musicTimer = setTimeout(stepMusic, song.tempo);
+  }
+
+  function startMusic() {
+    stopMusic();
+    if (!S.music) return;
+    ensureAudio();
+    musicTimer = setTimeout(stepMusic, 80);
+    updateHud();
+  }
+
+  function stopMusic() {
+    if (musicTimer) { clearTimeout(musicTimer); musicTimer = null; }
+    updateHud();
+  }
+
   function chime(notes = [660, 880], dur = 0.12, type = 'sine') {
     if (!S.sound) return;
     try {
-      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      ensureAudio();
       const t0 = audio.currentTime;
       notes.forEach((f, i) => {
         const o = audio.createOscillator();
@@ -255,9 +469,11 @@
   function updateHud() {
     $('#hud-stars').textContent = S.stars;
     $('#hud-hearts').textContent = S.hearts;
+    const mb = $('#music-btn');
+    if (mb) mb.textContent = S.music ? '🎵' : '🔇';
   }
 
-  // ---------- Garden ----------
+  // ---------- Garden + Butterflies & Bees ----------
   function growPlot(p, seconds) {
     let left = seconds;
     while (left > 0 && p.watered && p.stage < 2) {
@@ -271,7 +487,16 @@
     }
   }
 
+  function totalCritters() {
+    return Object.values(S.critters || {}).reduce((a, b) => a + b, 0);
+  }
+
   function renderGarden() {
+    if (!gardenCritters.length) spawnCritters();
+    const sky = gardenCritters.map((c, idx) => {
+      const info = CRITTERS[c.id];
+      return `<button class="critter" data-act="catchCritter" data-i="${idx}" style="left:${c.left}%;top:${c.top}px;animation-delay:${c.delay}s" title="Tap to catch ${info.name}!">${info.em}</button>`;
+    }).join('');
     const plots = S.plots.map((p, i) => {
       if (!p) return `<button class="plot" data-act="plot" data-i="${i}"><span style="opacity:.5">➕</span><span class="label">Plant</span></button>`;
       const c = CROPS[p.crop];
@@ -283,9 +508,116 @@
     }).join('');
     return `<div class="scene bg-garden">
       <h2>🌱 Michelle's Garden</h2>
-      <p class="hint">Tap a patch to plant, tap again to water. Plants never wilt — take your time!</p>
+      <div class="critter-bar">
+        <button class="critter-pill" data-act="critterBook">🦋 Caught: ${totalCritters()}</button>
+        <span class="critter-pill">🍯 Honey: ${S.honey || 0}</span>
+        <button class="critter-pill" data-act="callCritters">🌺 Call Butterflies &amp; Bees</button>
+      </div>
+      <div class="critter-sky">${sky}</div>
       <div class="plots">${plots}</div>
     </div>`;
+  }
+
+  function catchCritter(idx, el) {
+    const c = gardenCritters[idx];
+    if (!c) return;
+    const info = CRITTERS[c.id];
+    add(S.critters, c.id, 1);
+    S.stars += 1;
+    let msg = `Caught a ${info.name} ${info.em}! (+1 ⭐)`;
+    if (info.honey) {
+      S.honey = (S.honey || 0) + info.honey;
+      msg = `Caught a ${info.name} 🐝! She shared +${info.honey} 🍯 Honey for baking & +1 ⭐!`;
+    }
+    SFX.harvest();
+    sparkleAt(el, [info.em, '✨', info.honey ? '🍯' : '⭐'], 10);
+    gardenCritters.splice(idx, 1);
+    if (!gardenCritters.length) setTimeout(() => { spawnCritters(); if (scene === 'garden') render(); }, 900);
+    save(); render();
+    toast(msg);
+  }
+
+  function critterBook() {
+    const rows = Object.entries(CRITTERS).map(([id, c]) => {
+      const n = S.critters[id] || 0;
+      return `<div class="list-item"><span class="em">${n ? c.em : '❔'}</span><div class="grow"><b>${n ? c.name : '??? Mystery Critter'}</b><small>${c.kind === 'bee' ? 'Gives sweet 🍯 Honey for baking!' : 'Flutters over Michelle\'s garden flowers.'} · Caught: ${n}</small></div></div>`;
+    }).join('');
+    openModal(`<h3>🦋 Butterfly &amp; Bee Jar (${totalCritters()})</h3>${rows}<div class="row"><button class="btn" data-act="close">Close</button></div>`);
+  }
+
+  // ---------- Witch Bakery (Tarts, Cakes & Cookies) ----------
+  function canBake(id) {
+    const cost = BAKES[id].cost;
+    return Object.entries(cost).every(([k, need]) => (k === 'honey' ? (S.honey || 0) : (S.crops[k] || 0)) >= need);
+  }
+
+  function costLabel(cost) {
+    const entries = Object.entries(cost);
+    if (!entries.length) return 'Free pantry butter & sugar ✨';
+    return entries.map(([k, n]) => k === 'honey' ? `🍯 Honey ×${n}` : `${CROPS[k].em} ${CROPS[k].name} ×${n}`).join(' + ');
+  }
+
+  function renderBakery() {
+    const bakedIds = Object.keys(S.bakes).filter(id => S.bakes[id] > 0);
+    const tray = bakedIds.length
+      ? bakedIds.map(id => `<button class="ing" data-act="pastryAction" data-id="${id}">${BAKES[id].em}<small>${BAKES[id].name} × ${S.bakes[id]}</small></button>`).join('')
+      : `<span style="font-size:15px;opacity:.8">No pastries on the tray yet — pick a recipe below to bake!</span>`;
+
+    const cards = Object.entries(BAKES).map(([id, b]) => {
+      const ok = !ovenBusy && canBake(id);
+      return `<div class="bake-item">
+        <div class="em">${b.em}</div>
+        <div class="nm">${b.name}</div>
+        <small>${costLabel(b.cost)}</small>
+        <button class="btn primary" data-act="bake" data-id="${id}" ${ok ? '' : 'disabled'}>🔥 Bake ${b.kind}</button>
+      </div>`;
+    }).join('');
+
+    return `<div class="scene bg-bakery">
+      <h2>🧁 Michelle's Witch Bakery</h2>
+      <p class="hint">Bake warm Cookies 🍪, Tarts 🥧, and Cakes 🎂 for Carrot, Seo-Ah, or yourself!</p>
+      <div class="oven-card">
+        <div class="oven-visual ${ovenBusy ? 'baking' : ''}" id="oven-box">
+          <span>🔥</span><span>${ovenBusy ? '⏲️' : '🧁'}</span><span>🍪</span>
+        </div>
+        <div><b>${ovenBusy ? 'Baking in the warm oven… ✨' : `🍯 Honey: ${S.honey || 0} · Tap any recipe below to bake!`}</b></div>
+        <div class="ingredients" style="margin-top:4px">${tray}</div>
+      </div>
+      <div class="bakery-grid">${cards}</div>
+    </div>`;
+  }
+
+  function bakeItem(id, el) {
+    if (ovenBusy || !canBake(id)) return;
+    const b = BAKES[id];
+    Object.entries(b.cost).forEach(([k, n]) => {
+      if (k === 'honey') S.honey = Math.max(0, (S.honey || 0) - n);
+      else add(S.crops, k, -n);
+    });
+    ovenBusy = true;
+    SFX.plant();
+    render();
+    const ovenEl = $('#oven-box') || el;
+    sparkleAt(ovenEl, ['🔥', '🧁', '✨'], 8);
+    setTimeout(() => {
+      ovenBusy = false;
+      add(S.bakes, id, 1);
+      S.stars += 2;
+      SFX.magic();
+      save(); render();
+      if ($('#oven-box')) sparkleAt($('#oven-box'), [b.em, '⭐', '✨'], 12);
+      toast(`🛎️ Ding! Fresh ${b.name} ${b.em} (+2 ⭐)`);
+    }, 1100);
+  }
+
+  function pastryAction(id) {
+    if (!S.bakes[id]) return;
+    const b = BAKES[id];
+    openModal(`<h3>${b.em} ${b.name}</h3>
+      <p style="text-align:center;margin:4px 0 12px">${b.desc}</p>
+      <div class="list-item"><span class="em">🍽️</span><div class="grow"><b>Eat a warm bite!</b><small>Yummy! Gives +2 ⭐ Stars</small></div><button class="btn primary" data-act="eatBake" data-id="${id}">Eat</button></div>
+      <div class="list-item"><span class="em">🐢</span><div class="grow"><b>Feed to Carrot</b><small>Carrot loves fresh bakery treats! (+1 💚 &amp; +2 ⭐)</small></div><button class="btn primary" data-act="feedBakeCarrot" data-id="${id}">Feed Carrot</button></div>
+      <div class="row"><button class="btn" data-act="close">Close</button></div>`);
   }
 
   function plotTap(i, el) {
@@ -511,26 +843,33 @@
 
   function giftMenu() {
     const rows = [];
+    Object.keys(S.bakes).forEach(id => {
+      const b = BAKES[id];
+      rows.push(`<div class="list-item"><span class="em">${b.em}</span><div class="grow"><b>${b.name} × ${S.bakes[id]}</b><small>Homemade bakery treat — Seo-Ah LOVES these! 💖</small></div><button class="btn pink" data-act="gift" data-kind="bake" data-id="${id}">Give</button></div>`);
+    });
     Object.keys(S.crops).forEach(id => rows.push(`<div class="list-item"><span class="em">${CROPS[id].em}</span><div class="grow"><b>${CROPS[id].name} × ${S.crops[id]}</b><small>${id === 'starflower' ? 'Seo-Ah LOVES these!' : 'A nice gift'}</small></div><button class="btn pink" data-act="gift" data-kind="crop" data-id="${id}">Give</button></div>`));
     Object.keys(S.potions).forEach(id => {
       const p = id === 'soup' ? SOUP : RECIPES[id];
       rows.push(`<div class="list-item"><span class="em">${p.em}</span><div class="grow"><b>${p.name} × ${S.potions[id]}</b><small>${['friend', 'rainbow'].includes(id) ? 'Seo-Ah LOVES these!' : id === 'soup' ? 'Hmm… are you sure? 😅' : 'A nice gift'}</small></div><button class="btn pink" data-act="gift" data-kind="potion" data-id="${id}">Give</button></div>`);
     });
-    openModal(`<h3>🎁 Gift for Seo-Ah</h3>${rows.join('') || '<div class="empty">Nothing to give yet. Grow something in the garden!</div>'}<div class="row"><button class="btn" data-act="close">Close</button></div>`);
+    openModal(`<h3>🎁 Gift for Seo-Ah</h3>${rows.join('') || '<div class="empty">Nothing to give yet. Bake a cookie or grow something in the garden!</div>'}<div class="row"><button class="btn" data-act="close">Close</button></div>`);
   }
 
   function gift(kind, id) {
-    const bag = kind === 'crop' ? S.crops : S.potions;
+    const bag = kind === 'bake' ? S.bakes : kind === 'crop' ? S.crops : S.potions;
     if (!bag[id] || S.daily.gifted) return;
     add(bag, id, -1);
     S.daily.gifted = true;
     closeModal();
-    const loved = id === 'starflower' || id === 'friend' || id === 'rainbow';
+    const loved = kind === 'bake' || id === 'starflower' || id === 'friend' || id === 'rainbow';
     const lines = [];
     let unlock;
     if (id === 'soup') {
       lines.push({ who: 'seoah', text: 'Mystery soup?! 😂 It smells like socks… but you made me laugh so hard! Thanks!' });
       unlock = giveHearts(1);
+    } else if (kind === 'bake') {
+      lines.push({ who: 'seoah', text: `You baked ${BAKES[id].name} ${BAKES[id].em} for me?! Masisseo — it's SO yummy, Michelle!! 🥹💖💖` });
+      unlock = giveHearts(3);
     } else if (loved) {
       lines.push({ who: 'seoah', text: id === 'friend' ? 'A Friendship Potion?! Michelle… that\'s the sweetest thing ever! 🥹💖' : 'WAH! This is my absolute favorite! Gomawo, Michelle!! 💖💖' });
       unlock = giveHearts(3);
@@ -542,16 +881,35 @@
     save(); render(); say(lines);
   }
 
-  // ---------- Room ----------
+  // ---------- Room & Carrot's Little House ----------
   function renderRoom() {
     const tiles = S.room.map((f, i) => `<button class="tile" data-act="tile" data-i="${i}">${f ? FURNITURE[f].em : ''}</button>`).join('');
     const owned = Object.keys(S.furniture).filter(id => S.furniture[id] > 0);
     const tray = owned.length
       ? owned.map(id => `<button class="${roomSel === id ? 'sel' : ''}" data-act="pick" data-id="${id}" aria-label="${FURNITURE[id].name}">${FURNITURE[id].em}<small>${S.furniture[id]}</small></button>`).join('')
       : '<span class="hint">Buy furniture in the shop, or make friends with Seo-Ah for gifts!</span>';
+    const cc = S.carrotCare || { fed: false, watered: false, loves: 1 };
     return `<div class="scene bg-room">
-      <h2>🏡 Michelle's Dorm Room</h2>
-      <p class="hint">${roomSel ? `Tap a spot to place the ${FURNITURE[roomSel].name}.` : 'Pick something above, then tap where it goes. Tap an item in the room to put it away.'}</p>
+      <h2>🏡 Michelle &amp; Carrot's Room</h2>
+      <div class="carrot-house" id="carrot-house-box">
+        <div class="carrot-house-avatar">
+          <img src="assets/portrait-carrot.jpg" alt="Carrot">
+          <span class="carrot-house-roof">🏠</span>
+        </div>
+        <div class="carrot-house-info">
+          <div class="carrot-house-title">🐢🏡 Carrot's Little House · 💚 ${cc.loves}</div>
+          <div class="carrot-bowls">
+            <span class="bowl-tag">🥣 Food: ${cc.fed ? '🥕 Full &amp; Happy!' : 'Hungry'}</span>
+            <span class="bowl-tag">💧 Water: ${cc.watered ? '💦 Fresh &amp; Full!' : 'Thirsty'}</span>
+          </div>
+        </div>
+        <div class="carrot-house-btns">
+          <button class="btn primary" data-act="feedCarrotHouse">🥕 Feed Her</button>
+          <button class="btn primary" data-act="waterCarrot">💧 Give Water</button>
+          <button class="btn pink" data-act="petCarrotHouse">💚 Pet Her</button>
+        </div>
+      </div>
+      <p class="hint">${roomSel ? `Tap a spot to place the ${FURNITURE[roomSel].name}.` : 'Pick furniture below, then tap where it goes in the room.'}</p>
       <div class="tray">${tray}</div>
       <div class="room-grid">${tiles}</div>
       <div class="row"><button class="btn primary" data-act="sleep">🌙 Go to sleep (next day)</button></div>
@@ -579,7 +937,9 @@
     chime([392, 330, 262], 0.25);
     setTimeout(() => {
       S.day++;
-      S.daily = { talked: false, gifted: false, carrot: false, word: (S.daily.word || 0) + 1 };
+      S.daily = { talked: false, gifted: false, carrot: false, wateredCarrot: false, word: (S.daily.word || 0) + 1 };
+      S.carrotCare = Object.assign({ loves: 1 }, S.carrotCare, { fed: false, watered: false });
+      spawnCritters();
       save(); render();
       toast(`☀️ Good morning! Day ${S.day} at Starwillow`);
     }, 1100);
@@ -591,6 +951,7 @@
     const seeds = Object.entries(CROPS).map(([id, c]) => `<div class="shop-item"><div class="em">${c.em}</div><div class="nm">${c.name} seeds</div><small>You have ${S.seeds[id] || 0}</small><button class="btn primary" data-act="buySeed" data-id="${id}" ${S.stars < c.seed ? 'disabled' : ''}>${c.seed} ⭐</button></div>`).join('');
     const furn = Object.entries(FURNITURE).filter(([, f]) => !f.gift && f.price > 0).map(([id, f]) => `<div class="shop-item"><div class="em">${f.em}</div><div class="nm">${f.name}</div><button class="btn primary" data-act="buyFurn" data-id="${id}" ${S.stars < f.price ? 'disabled' : ''}>${f.price} ⭐</button></div>`).join('');
     const sellRows = [
+      ...Object.keys(S.bakes).map(id => ({ kind: 'bake', id, em: BAKES[id].em, name: BAKES[id].name, n: S.bakes[id], price: BAKES[id].sell })),
       ...Object.keys(S.crops).map(id => ({ kind: 'crop', id, em: CROPS[id].em, name: CROPS[id].name, n: S.crops[id], price: CROPS[id].sell })),
       ...Object.keys(S.potions).map(id => { const p = id === 'soup' ? SOUP : RECIPES[id]; return { kind: 'potion', id, em: p.em, name: p.name, n: S.potions[id], price: p.sell }; }),
     ];
@@ -620,9 +981,9 @@
     toast(`${f.em} ${f.name} sent to your Room!`);
   }
   function sell(kind, id) {
-    const bag = kind === 'crop' ? S.crops : S.potions;
+    const bag = kind === 'bake' ? S.bakes : kind === 'crop' ? S.crops : S.potions;
     if (!bag[id]) return;
-    const price = kind === 'crop' ? CROPS[id].sell : (id === 'soup' ? SOUP : RECIPES[id]).sell;
+    const price = kind === 'bake' ? BAKES[id].sell : kind === 'crop' ? CROPS[id].sell : (id === 'soup' ? SOUP : RECIPES[id]).sell;
     add(bag, id, -1); S.stars += price;
     SFX.coin(); save(); render();
   }
@@ -630,8 +991,13 @@
   // ---------- Bag, book, potions ----------
   function bag() {
     const rows = [];
+    if (S.honey > 0) rows.push(`<div class="list-item"><span class="em">🍯</span><div class="grow"><b>Golden Honey × ${S.honey}</b><small>From garden bees — bake cookies &amp; tarts in the Bakery!</small></div></div>`);
+    Object.keys(S.bakes).forEach(id => {
+      const b = BAKES[id];
+      rows.push(`<div class="list-item"><span class="em">${b.em}</span><div class="grow"><b>${b.name} × ${S.bakes[id]}</b><small>${b.desc}</small></div><button class="btn primary" data-act="pastryAction" data-id="${id}">Enjoy</button></div>`);
+    });
     Object.keys(S.seeds).forEach(id => rows.push(`<div class="list-item"><span class="em">🌰</span><div class="grow"><b>${CROPS[id].name} seeds × ${S.seeds[id]}</b><small>Plant these in the Garden</small></div></div>`));
-    Object.keys(S.crops).forEach(id => rows.push(`<div class="list-item"><span class="em">${CROPS[id].em}</span><div class="grow"><b>${CROPS[id].name} × ${S.crops[id]}</b><small>Use in potions${id === 'carrot' ? ' — or feed Carrot!' : ''}</small></div>${id === 'carrot' ? '<button class="btn" data-act="feedCarrot">Feed Carrot</button>' : ''}</div>`));
+    Object.keys(S.crops).forEach(id => rows.push(`<div class="list-item"><span class="em">${CROPS[id].em}</span><div class="grow"><b>${CROPS[id].name} × ${S.crops[id]}</b><small>Use in potions or baking${id === 'carrot' ? ' — or feed Carrot!' : ''}</small></div>${id === 'carrot' ? '<button class="btn" data-act="feedCarrot">Feed Carrot</button>' : ''}</div>`));
     Object.keys(S.potions).forEach(id => {
       const p = id === 'soup' ? SOUP : RECIPES[id];
       rows.push(`<div class="list-item"><span class="em">${p.em}</span><div class="grow"><b>${p.name} × ${S.potions[id]}</b><small>${p.desc || 'Smells… interesting.'}</small></div><button class="btn primary" data-act="drink" data-id="${id}">Use</button></div>`);
@@ -655,7 +1021,7 @@
     const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
     if (id === 'soup') {
       SFX.oops();
-      say([{ who: 'michelle', text: 'Bleh! Tastes like soggy socks! 🤢' }, { who: 'carrot', text: 'Carrot hides in his shell, giggling.' }]);
+      say([{ who: 'michelle', text: 'Bleh! Tastes like soggy socks! 🤢' }, { who: 'carrot', text: 'Carrot hides in her shell, giggling.' }]);
       return render();
     }
     const effect = RECIPES[id].effect;
@@ -701,7 +1067,7 @@
       const id = ids[Math.floor(Math.random() * ids.length)];
       add(S.crops, id);
       save(); render();
-      say([{ who: 'carrot', text: `Carrot was digging in the flowerbed and found a ${CROPS[id].name} ${CROPS[id].em}! He found a treasure for you today.` }]);
+      say([{ who: 'carrot', text: `Carrot was digging in the flowerbed and found a ${CROPS[id].name} ${CROPS[id].em}! She brought a treasure for you today.` }]);
       return;
     }
     say([{ who: 'carrot', text: CARROT_LINES[Math.floor(Math.random() * CARROT_LINES.length)] }]);
@@ -711,22 +1077,78 @@
     if (!S.crops.carrot) return;
     add(S.crops, 'carrot', -1);
     S.stars += 1;
+    S.carrotCare = S.carrotCare || { fed: false, watered: false, loves: 1 };
+    S.carrotCare.fed = true;
+    S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
     closeModal(); save(); render();
     sparkleAt($('#carrot-buddy'), ['🥕', '💚', '⭐'], 8);
     SFX.heart();
-    say([{ who: 'carrot', text: 'CRUNCH CRUNCH! Carrot ate the carrot. (Yes, really!) He looks super happy. +1 ⭐' }]);
+    say([{ who: 'carrot', text: 'CRUNCH CRUNCH! Carrot ate the crunchy carrot! She wiggles her shell happily. +1 ⭐ & +1 💚' }]);
+  }
+
+  function feedCarrotHouse(el) {
+    S.carrotCare = S.carrotCare || { fed: false, watered: false, loves: 1 };
+    let snackName = 'crunchy garden carrot snack 🥕';
+    if (S.bakes.carrot_cake) {
+      add(S.bakes, 'carrot_cake', -1);
+      snackName = 'slice of Fluffy Carrot Cake 🎂';
+    } else if (S.crops.carrot) {
+      add(S.crops, 'carrot', -1);
+      snackName = 'fresh crunchy Carrot 🥕';
+    }
+    if (!S.carrotCare.fed) S.stars += 1;
+    S.carrotCare.fed = true;
+    S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
+    SFX.heart();
+    save(); render();
+    if ($('#carrot-house-box')) sparkleAt($('#carrot-house-box'), ['🥕', '💚', '⭐'], 10);
+    toast(`🐢🥕 Carrot munched her ${snackName}! (+1 💚)`);
+  }
+
+  function waterCarrot() {
+    S.carrotCare = S.carrotCare || { fed: false, watered: false, loves: 1 };
+    if (!S.carrotCare.watered) S.stars += 1;
+    S.carrotCare.watered = true;
+    S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
+    SFX.water();
+    save(); render();
+    if ($('#carrot-house-box')) sparkleAt($('#carrot-house-box'), ['💧', '💦', '💚'], 10);
+    toast('🐢💧 Fresh cool water! Carrot splashes her flippers happily! (+1 💚)');
+  }
+
+  function petCarrotHouse() {
+    S.carrotCare = S.carrotCare || { fed: false, watered: false, loves: 1 };
+    S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
+    SFX.heart();
+    save(); render();
+    if ($('#carrot-house-box')) sparkleAt($('#carrot-house-box'), ['💚', '🐢', '✨'], 8);
+    say([{ who: 'carrot', text: 'Carrot curls up inside her cozy little house and blinks happily at Michelle! 🐢🏡💚' }]);
+  }
+
+  function musicModal() {
+    const songRows = SONGS.map((s, idx) => `<div class="list-item">
+      <span class="em">${S.song === idx && S.music ? '🎶' : '🎵'}</span>
+      <div class="grow"><b>${s.name}</b><small>${S.song === idx ? 'Selected melody' : 'Tap to play this melody'}</small></div>
+      <button class="btn ${S.song === idx ? 'primary' : ''}" data-act="pickSong" data-i="${idx}">${S.song === idx && S.music ? 'Playing' : 'Play'}</button>
+    </div>`).join('');
+    openModal(`<h3>🎵 Witch School Music</h3>
+      <div class="list-item"><span class="em">${S.music ? '🎵' : '🔇'}</span><div class="grow"><b>Background Music</b><small>Cozy music-box &amp; harp melodies</small></div><button class="btn primary" data-act="toggleMusic">${S.music ? 'Mute Music' : 'Turn On Music'}</button></div>
+      ${songRows}
+      <div class="list-item"><span class="em">${S.sound ? '🔊' : '🔇'}</span><div class="grow"><b>Sound Effects</b><small>Sparkles, water &amp; chimes</small></div><button class="btn" data-act="toggleSound">${S.sound ? 'Turn off' : 'Turn on'}</button></div>
+      <div class="row"><button class="btn" data-act="close">Close</button></div>`);
   }
 
   function settings() {
     openModal(`<h3>⚙️ Settings</h3>
-      <div class="list-item"><span class="em">${S.sound ? '🔊' : '🔇'}</span><div class="grow"><b>Sound</b><small>Cute chimes and sparkles</small></div><button class="btn" data-act="toggleSound">${S.sound ? 'Turn off' : 'Turn on'}</button></div>
+      <div class="list-item"><span class="em">${S.music ? '🎵' : '🔇'}</span><div class="grow"><b>Music (${SONGS[S.song || 0].name})</b><small>Cozy background melody</small></div><button class="btn" data-act="toggleMusic">${S.music ? 'Turn off' : 'Turn on'}</button></div>
+      <div class="list-item"><span class="em">${S.sound ? '🔊' : '🔇'}</span><div class="grow"><b>Sound Effects</b><small>Cute chimes and sparkles</small></div><button class="btn" data-act="toggleSound">${S.sound ? 'Turn off' : 'Turn on'}</button></div>
       <div class="list-item"><span class="em">🏠</span><div class="grow"><b>Play on the iPad Home Screen</b><small>In Safari, tap Share ⬆️ then "Add to Home Screen". Your progress saves on this iPad.</small></div></div>
       <div class="list-item"><span class="em">🧹</span><div class="grow"><b>Start over</b><small>Erases all progress</small></div><button class="btn" data-act="reset">Start over</button></div>
       <div class="row"><button class="btn" data-act="close">Close</button></div>`);
   }
 
   // ---------- Rendering ----------
-  const SCENES = { garden: renderGarden, cauldron: renderCauldron, class: renderClass, room: renderRoom, shop: renderShop };
+  const SCENES = { garden: renderGarden, bakery: renderBakery, cauldron: renderCauldron, class: renderClass, room: renderRoom, shop: renderShop };
   function render() {
     const scroll = $('#scene .scene')?.scrollTop || 0;
     $('#scene').innerHTML = SCENES[scene]();
@@ -747,12 +1169,13 @@
   function startGame() {
     $('#title').classList.add('hidden');
     $('#game').classList.remove('hidden');
+    startMusic();
     render();
     if (!S.started) {
       S.started = true; save();
       say([
         { who: 'michelle', text: 'My first day at Starwillow Witch School! I\'m so excited I could float! ✨' },
-        { who: 'carrot', text: 'Carrot pokes his head out of Michelle\'s bag and blinks happily. 🐢' },
+        { who: 'carrot', text: 'Carrot pokes her head out of Michelle\'s bag and blinks happily. 🐢' },
         { who: 'seoah', text: 'Michelle! Over here! We\'re in the same class! Annyeong! 👋' },
         { who: 'michelle', text: 'Seo-Ah! Yay! Best friends AND classmates!' },
         { who: 'owl', text: 'Hoo-hoo! Welcome, young witches. Your first lesson: grow a Moonberry in your garden. Off you go!' },
@@ -760,6 +1183,12 @@
       ]);
     }
   }
+
+  // Resume/start music on any touch/click once in game (for iPad Safari AudioContext rules)
+  document.addEventListener('pointerdown', () => {
+    ensureAudio();
+    if (S.music && !musicTimer && !$('#game').classList.contains('hidden')) startMusic();
+  }, { passive: true });
 
   // ---------- Events ----------
   document.addEventListener('click', e => {
@@ -776,6 +1205,33 @@
       case 'close': SFX.tap(); closeModal(); break;
       case 'plot': plotTap(+i, el); break;
       case 'plant': plant(+i, id); break;
+      case 'catchCritter': catchCritter(+i, el); break;
+      case 'callCritters': spawnCritters(); SFX.magic(); render(); toast('🦋🐝 Fresh butterflies & bees fluttered into the garden!'); break;
+      case 'critterBook': SFX.tap(); critterBook(); break;
+      case 'bake': bakeItem(id, el); break;
+      case 'pastryAction': SFX.tap(); pastryAction(id); break;
+      case 'eatBake':
+        if (S.bakes[id]) {
+          const b = BAKES[id];
+          add(S.bakes, id, -1); S.stars += 2;
+          closeModal(); SFX.harvest(); save(); render();
+          toast(`😋 Yummy ${b.name} ${b.em}! (+2 ⭐)`);
+        }
+        break;
+      case 'feedBakeCarrot':
+        if (S.bakes[id]) {
+          const b = BAKES[id];
+          add(S.bakes, id, -1); S.stars += 2;
+          S.carrotCare = S.carrotCare || { fed: false, watered: false, loves: 1 };
+          S.carrotCare.fed = true; S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
+          closeModal(); SFX.heart(); save(); render();
+          sparkleAt($('#carrot-buddy'), [b.em, '💚', '⭐'], 10);
+          say([{ who: 'carrot', text: `NOM NOM! Carrot gobbled up the ${b.name} ${b.em}! She is the happiest turtle ever! (+1 💚 & +2 ⭐)` }]);
+        }
+        break;
+      case 'feedCarrotHouse': feedCarrotHouse(el); break;
+      case 'waterCarrot': waterCarrot(); break;
+      case 'petCarrotHouse': petCarrotHouse(); break;
       case 'addIng':
         if (pot.length < 3 && !pot.includes(id) && S.crops[id]) { add(S.crops, id, -1); pot.push(id); stir = 0; SFX.plant(); save(); render(); sparkleAt($('#cauldron'), ['🫧'], 4); }
         break;
@@ -796,13 +1252,23 @@
       case 'sell': sell(kind, id); break;
       case 'bag': SFX.tap(); bag(); break;
       case 'book': SFX.tap(); book(); break;
+      case 'music': SFX.tap(); musicModal(); break;
+      case 'toggleMusic':
+        S.music = !S.music;
+        if (S.music) startMusic(); else stopMusic();
+        save(); musicModal();
+        break;
+      case 'pickSong':
+        S.song = +i; S.music = true; musicStep = 0;
+        startMusic(); save(); musicModal();
+        break;
       case 'settings': SFX.tap(); settings(); break;
       case 'drink': drink(id); break;
       case 'carrot': carrotTap(); break;
       case 'feedCarrot': feedCarrot(); break;
       case 'toggleSound': S.sound = !S.sound; save(); settings(); break;
       case 'reset':
-        if (el.dataset.confirm) { localStorage.removeItem(SAVE_KEY); S = newState(); pot = []; stir = 0; closeModal(); $('#game').classList.add('hidden'); $('#title').classList.remove('hidden'); }
+        if (el.dataset.confirm) { stopMusic(); localStorage.removeItem(SAVE_KEY); S = newState(); pot = []; stir = 0; closeModal(); $('#game').classList.add('hidden'); $('#title').classList.remove('hidden'); }
         else { el.dataset.confirm = '1'; el.textContent = 'Tap again to erase'; }
         break;
     }
@@ -821,9 +1287,12 @@
     if (changed) { save(); if (scene === 'garden' && !$('#game').classList.contains('hidden')) { render(); chime([784, 988], 0.06); } }
   }, 1000);
   setInterval(save, 5000);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { save(); stopMusic(); }
+    else if (S.music && !$('#game').classList.contains('hidden')) startMusic();
+  });
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
-  window.__starwillow = { get state() { return S; } }; // for testing
+  window.__starwillow = { get state() { return S; }, get musicPlaying() { return !!musicTimer; } }; // for testing
 })();
