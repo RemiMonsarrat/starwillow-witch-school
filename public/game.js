@@ -823,5 +823,7 @@
   setInterval(save, 5000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
   window.__starwillow = { get state() { return S; } }; // for testing
 })();
