@@ -39,11 +39,13 @@
     moon:     { name: 'Moon Lamp',         em: '🌙', price: 14 },
     couch:    { name: 'Comfy Couch',       em: '🛋️', price: 15 },
     pond:     { name: 'Carrot\'s Pond',    em: '🪷', price: 18 },
-    // Gifts from Seo-Ah (not sold in the shop)
+    fort:     { name: 'Sleepover Tent',    em: '⛺', price: 8 },
+    // Gifts & trophies (not sold in the shop)
     chime:    { name: 'Wind Chime from Seo-Ah',   em: '🎐', gift: true },
     lantern:  { name: 'Lantern from Seo-Ah',      em: '🏮', gift: true },
     photo:    { name: 'Best Friends Photo',       em: '🖼️', gift: true },
     star:     { name: 'Best Friends Star',        em: '🌟', gift: true },
+    trophy:   { name: 'Golden Broom Trophy',      em: '🏆', gift: true },
   };
 
   const HEART_GIFTS = [
@@ -66,6 +68,48 @@
     ['맛있어 (masisseo)', 'yummy!'],
     ['당근 (danggeun)', 'carrot — like Carrot\'s name!'],
     ['마법 (mabeop)', 'magic'],
+    ['귀여워 (gwiyeowo)', 'so cute!'],
+    ['대박 (daebak)', 'awesome / amazing!'],
+    ['가자 (kaja)', 'let\'s go!'],
+    ['행복 (haengbok)', 'happiness!'],
+  ];
+
+  const SEOAH_STORIES = [
+    {
+      q: 'Michelle! Professor Hootsworth accidentally turned his owl feathers sparkly pink in Potion Class! What should we do?',
+      opts: [
+        { label: '🎀 Give him a matching pink bow!', reply: 'Bahaha!! He looked in the mirror and said "Hoo-hoo, very fashionable!" Best idea ever, Michelle! 😂💖' },
+        { label: '🧪 Brew a Starflower wash together!', reply: 'We stirred the potion so fast! His feathers turned snowy white again, except one sparkly pink tail feather! ✨' },
+      ],
+    },
+    {
+      q: 'My halmeoni sent a snack box from Seoul for us and Carrot! Which treat should we open first?',
+      opts: [
+        { label: '🍡 Honey rice cakes (kkultteok)!', reply: 'Masisseo!! They\'re filled with sweet sesame honey! Let\'s save a tiny piece of carrot on the side for Carrot too! 🐢💖' },
+        { label: '🍓 Strawberry milk & star cookies!', reply: 'Cheers!! Pink strawberry milk tastes 100 times better when sharing with my best friend! 🍓🥛✨' },
+      ],
+    },
+    {
+      q: 'When we graduate Starwillow Witch School, what kind of magical shop should you, me, and Carrot open?',
+      opts: [
+        { label: '🧁 A Flying Bakery & Potion Café!', reply: 'YES!! You bake the tarts and cakes, I\'ll pour the starlight tea, and Carrot can be the official taste-tester! 🎂🐢' },
+        { label: '🦋 An Enchanted Garden & Butterfly Sanctuary!', reply: 'Ooh! With glowing flowers, a giant pond for Carrot, and friendly bees making golden honey! 🌸🐝' },
+      ],
+    },
+    {
+      q: 'Look at Carrot! She\'s trying to climb onto your broomstick basket! Where should we fly after class?',
+      opts: [
+        { label: '🌈 Over the Rainbow Cloud Arch!', reply: 'Wheee! Hold onto your beige witch hat, Michelle — let\'s race through the rainbow rings! 🧹🌈' },
+        { label: '🌙 Up to the Starlight Observatory!', reply: 'We can catch falling stars in our jars and wave to the moon owls! ✨🦉' },
+      ],
+    },
+    {
+      q: 'We have a free period before dinner! What do you want to practice together, Michelle?',
+      opts: [
+        { label: '🥧 Baking warm Moonberry Tarts!', reply: 'The whole dormitory is going to smell like warm berries and sugar! Let\'s make an extra one for Mrs. Bramble! 🥧💖' },
+        { label: '✨ Secret floating spells!', reply: 'Abracadabra — WHOA! My spell book is floating to the ceiling! Catch it, Carrot!! 😂🎈' },
+      ],
+    },
   ];
 
   const SEOAH_CHATS = [
@@ -147,6 +191,11 @@
       potions: {},
       furniture: {},
       room,
+      roomItems: [
+        { uid: 'bed-1', id: 'bed', x: 22, y: 74 },
+      ],
+      sleepover: false,
+      storyIdx: 0,
       plots: Array.from({ length: 6 }, () => null),
       discovered: [],
       lesson: 0,
@@ -194,6 +243,17 @@
       if (typeof s.honey !== 'number') s.honey = 1;
       if (typeof s.music !== 'boolean') s.music = true;
       if (typeof s.song !== 'number') s.song = 0;
+      if (!Array.isArray(s.roomItems)) {
+        s.roomItems = [];
+        const oldRoom = Array.isArray(s.room) ? s.room : [];
+        oldRoom.forEach((fid, idx) => {
+          if (fid && FURNITURE[fid]) {
+            const col = idx % 6, row = Math.floor(idx / 6);
+            s.roomItems.push({ uid: 'mig-' + idx, id: fid, x: 18 + col * 11, y: 46 + row * 7 });
+          }
+        });
+        if (!s.roomItems.length) s.roomItems.push({ uid: 'bed-1', id: 'bed', x: 22, y: 74 });
+      }
       // Plants keep growing while the game is closed, until they need water again.
       const away = Math.max(0, (Date.now() - (s.savedAt || Date.now())) / 1000);
       s.plots.forEach(p => { if (p) growPlot(p, away); });
@@ -440,15 +500,18 @@
     setTimeout(() => o.remove(), ms);
   }
 
-  // Dialog queue: lines of { who, text }.
+  // Dialog queue: lines of { who, text, choices?: [{ label, style?, onPick }] }.
   let dialogQueue = [];
   let dialogDone = null;
+  let activeChoices = null;
   function say(lines, done) {
+    $('#toast')?.classList.add('hidden');
     dialogQueue = lines.slice();
     dialogDone = done || null;
     nextLine();
   }
   function nextLine() {
+    if (activeChoices) return; // wait for player to pick a choice button
     const line = dialogQueue.shift();
     if (!line) {
       $('#dialog').classList.add('hidden');
@@ -459,7 +522,19 @@
     const p = PEOPLE[line.who];
     $('#dialog-avatar').innerHTML = p.img ? `<img src="${p.img}" alt="">` : p.em;
     $('#dialog-name').textContent = p.name;
-    $('#dialog-text').textContent = line.text;
+    const tapEl = document.querySelector('.dialog-tap');
+    if (line.choices && line.choices.length) {
+      activeChoices = line.choices;
+      const btns = line.choices.map((c, idx) =>
+        `<button class="choice-btn ${c.pink ? 'pink' : ''}" data-act="dialogChoice" data-i="${idx}">${c.label}</button>`
+      ).join('');
+      $('#dialog-text').innerHTML = `<div>${line.text}</div><div class="dialog-choices">${btns}</div>`;
+      if (tapEl) tapEl.textContent = 'choose an answer ▴';
+    } else {
+      activeChoices = null;
+      $('#dialog-text').textContent = line.text;
+      if (tapEl) tapEl.textContent = 'tap to continue ▸';
+    }
     $('#dialog').classList.remove('hidden');
   }
 
@@ -491,6 +566,12 @@
     return Object.values(S.critters || {}).reduce((a, b) => a + b, 0);
   }
 
+  // Coordinates of the 6 painted oval soil mounds on assets/bg-garden.jpg
+  const PLOT_POS = [
+    [20.5, 49], [50.5, 48], [81.5, 49],
+    [19.0, 74], [50.0, 74], [80.5, 74],
+  ];
+
   function renderGarden() {
     if (!gardenCritters.length) spawnCritters();
     const sky = gardenCritters.map((c, idx) => {
@@ -498,23 +579,36 @@
       return `<button class="critter" data-act="catchCritter" data-i="${idx}" style="left:${c.left}%;top:${c.top}px;animation-delay:${c.delay}s" title="Tap to catch ${info.name}!">${info.em}</button>`;
     }).join('');
     const plots = S.plots.map((p, i) => {
-      if (!p) return `<button class="plot" data-act="plot" data-i="${i}"><span style="opacity:.5">➕</span><span class="label">Plant</span></button>`;
+      const [lx, ty] = PLOT_POS[i];
+      const posStyle = `left:${lx}%;top:${ty}%`;
+      // Empty soil mound: no "+ Plant" box or text — just tap the natural soil directly!
+      if (!p) return `<button class="mound" style="${posStyle}" data-act="plot" data-i="${i}" aria-label="Empty soil bed ${i + 1}"></button>`;
       const c = CROPS[p.crop];
-      if (p.stage >= 2) return `<button class="plot ready" data-act="plot" data-i="${i}">${c.em}<span class="label">Harvest!</span></button>`;
-      const icon = p.stage === 0 ? '🌰' : '🌿';
-      const label = p.watered ? `${c.name}` : 'Needs water';
+      if (p.stage >= 2) {
+        return `<button class="mound ready" style="${posStyle}" data-act="plot" data-i="${i}">
+          <span class="plant-em">${c.em}</span>
+          <span class="label">✨ Pick ${c.name}</span>
+        </button>`;
+      }
+      const icon = p.stage === 0 ? '🌱' : '🌿';
+      const label = p.watered ? `${c.name}` : '💧 Tap to water';
       const drops = p.watered ? '<span class="drops">💧</span>' : '';
-      return `<button class="plot" data-act="plot" data-i="${i}">${icon}${drops}<span class="label">${label}</span></button>`;
+      return `<button class="mound" style="${posStyle}" data-act="plot" data-i="${i}">
+        <span class="plant-em">${icon}</span>${drops}
+        <span class="label">${label}</span>
+      </button>`;
     }).join('');
     return `<div class="scene bg-garden">
-      <h2>🌱 Michelle's Garden</h2>
       <div class="critter-bar">
+        <h2 style="margin:0">🌱 Michelle's Garden</h2>
         <button class="critter-pill" data-act="critterBook">🦋 Caught: ${totalCritters()}</button>
         <span class="critter-pill">🍯 Honey: ${S.honey || 0}</span>
         <button class="critter-pill" data-act="callCritters">🌺 Call Butterflies &amp; Bees</button>
       </div>
-      <div class="critter-sky">${sky}</div>
-      <div class="plots">${plots}</div>
+      <div class="garden-meadow">
+        <div class="critter-sky">${sky}</div>
+        ${plots}
+      </div>
     </div>`;
   }
 
@@ -662,26 +756,26 @@
     toast(`Planted ${CROPS[id].name}! Now tap it to water 💧`);
   }
 
-  // ---------- Cauldron ----------
+  // ---------- Cauldron (Finger-Stirring with Live Spoon!) ----------
   function renderCauldron() {
     const inPot = pot.map(id => CROPS[id].em).join(' ') || '';
     const ids = Object.keys(CROPS).filter(id => S.crops[id] > 0 || pot.includes(id));
     const ings = ids.length
       ? ids.map(id => `<button class="ing" data-act="addIng" data-id="${id}" ${pot.includes(id) || pot.length >= 3 || !S.crops[id] ? 'disabled' : ''}>
           ${CROPS[id].em}<small>${CROPS[id].name} × ${S.crops[id] || 0}</small></button>`).join('')
-      : `<p class="hint">Your basket is empty. Harvest plants in the Garden first! 🌱</p>`;
+      : `<p class="hint">Your basket is empty. Pick crops in the Garden first! 🌱</p>`;
     const ready = pot.length > 0 && stir >= 100;
     return `<div class="scene bg-cauldron">
       <h2>🧪 Potion Room</h2>
-      <p class="hint">${pot.length ? 'Draw circles in the cauldron with your finger to stir!' : 'Tap up to 3 ingredients to drop them in.'}</p>
+      <p class="hint">${pot.length ? 'Slide your finger around the cauldron to stir with the magic spoon! 🥄✨' : 'Tap 2 or 3 ingredients below to drop them into the cauldron.'}</p>
       <div class="cauldron-wrap" id="cauldron">
         <div class="cauldron"></div>
         <div class="brew" id="brew"></div>
-        <div class="in-pot">${inPot}</div>
+        <div class="in-pot" id="in-pot">${inPot}</div>
+        <div id="cauldron-spoon" style="position:absolute;left:50%;top:28%;transform:translate(-50%,-50%);font-size:54px;pointer-events:none;transition:left .04s,top .04s;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))">🥄</div>
       </div>
       <div class="stir-meter"><div id="stir-fill" style="width:${stir}%"></div></div>
       <div class="row">
-        <button class="btn" data-act="stirBtn" ${pot.length ? '' : 'disabled'}>🥄 Stir</button>
         <button class="btn primary" data-act="brew" ${ready ? '' : 'disabled'}>✨ Brew!</button>
         <button class="btn" data-act="emptyPot" ${pot.length ? '' : 'disabled'}>↩️ Empty</button>
       </div>
@@ -692,34 +786,78 @@
   function bindCauldron() {
     const wrap = $('#cauldron');
     if (!wrap) return;
-    let last = null;
-    const center = () => { const r = wrap.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-    wrap.addEventListener('pointerdown', e => { last = Math.atan2(e.clientY - center()[1], e.clientX - center()[0]); wrap.setPointerCapture(e.pointerId); });
-    wrap.addEventListener('pointermove', e => {
-      if (last === null || !pot.length) return;
-      const [cx, cy] = center();
-      const a = Math.atan2(e.clientY - cy, e.clientX - cx);
-      let d = a - last;
-      if (d > Math.PI) d -= 2 * Math.PI;
-      if (d < -Math.PI) d += 2 * Math.PI;
-      last = a;
-      addStir(Math.abs(d) / (3 * Math.PI) * 100); // one and a half circles fills the meter
+    let prevPt = null;
+    let bubbleTick = 0;
+
+    const moveSpoon = (clientX, clientY) => {
+      const r = wrap.getBoundingClientRect();
+      const xPct = Math.max(18, Math.min(82, ((clientX - r.left) / r.width) * 100));
+      const yPct = Math.max(14, Math.min(72, ((clientY - r.top) / r.height) * 100));
+      const sp = $('#cauldron-spoon');
+      if (sp) {
+        sp.style.left = xPct + '%';
+        sp.style.top = yPct + '%';
+      }
+      if (!pot.length) return;
+      if (prevPt) {
+        const dist = Math.hypot(clientX - prevPt[0], clientY - prevPt[1]);
+        if (dist > 1) {
+          // Smoothly fills 0 -> 100% as Michelle swirls/swishes her finger ~380px total
+          addStir(dist * 0.28);
+          bubbleTick += dist;
+          if (bubbleTick > 45) {
+            bubbleTick = 0;
+            sparkle(clientX, clientY, ['🫧', '✨', '💫'], 2);
+          }
+        }
+      }
+      prevPt = [clientX, clientY];
+    };
+
+    wrap.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      prevPt = [e.clientX, e.clientY];
+      try { wrap.setPointerCapture(e.pointerId); } catch {}
+      moveSpoon(e.clientX, e.clientY);
     });
-    const end = () => { last = null; $('#brew') && $('#brew').classList.remove('stirring'); };
+    wrap.addEventListener('pointermove', e => {
+      if (!prevPt) return;
+      e.preventDefault();
+      moveSpoon(e.clientX, e.clientY);
+    });
+    const end = () => {
+      prevPt = null;
+      $('#brew') && $('#brew').classList.remove('stirring');
+    };
     wrap.addEventListener('pointerup', end);
     wrap.addEventListener('pointercancel', end);
+
+    // Extra iOS Safari touch fallback so finger-stirring always works
+    wrap.addEventListener('touchstart', e => {
+      if (!e.touches[0]) return;
+      e.preventDefault();
+      prevPt = [e.touches[0].clientX, e.touches[0].clientY];
+      moveSpoon(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    wrap.addEventListener('touchmove', e => {
+      if (!e.touches[0]) return;
+      e.preventDefault();
+      moveSpoon(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    wrap.addEventListener('touchend', end);
   }
 
   function addStir(amount) {
+    if (stir >= 100) return;
     const was = stir;
     stir = Math.min(100, stir + amount);
-    $('#brew').classList.add('stirring');
-    $('#stir-fill').style.width = stir + '%';
-    if (Math.floor(stir / 25) > Math.floor(was / 25)) chime([440 + stir * 4], 0.05, 'triangle');
+    $('#brew')?.classList.add('stirring');
+    const fill = $('#stir-fill');
+    if (fill) fill.style.width = stir + '%';
+    if (Math.floor(stir / 20) > Math.floor(was / 20)) chime([420 + stir * 4.5], 0.05, 'triangle');
     if (stir >= 100 && was < 100) {
-      SFX.magic();
-      sparkleAt($('#cauldron'), ['🫧', '✨'], 8);
-      render();
+      // Automatically brew as soon as she finishes stirring!
+      setTimeout(() => { if (pot.length && stir >= 100) brew(); }, 180);
     }
   }
 
@@ -748,7 +886,312 @@
     save(); render();
   }
 
-  // ---------- Class ----------
+  // ---------- Broomstick Flying with Seo-Ah & Carrot ----------
+  let skyRaf = null;
+  let skyState = null;
+
+  function stopSky() {
+    if (skyRaf) { cancelAnimationFrame(skyRaf); skyRaf = null; }
+  }
+
+  function renderSky() {
+    const r = skyState && skyState.raceActive;
+    const mPct = skyState ? Math.min(100, Math.round(skyState.mDist)) : 0;
+    const sPct = skyState ? Math.min(100, Math.round(skyState.sDist)) : 0;
+    return `<div class="scene bg-sky">
+      <div class="sky-bar">
+        <h2 style="margin:0">🧹 Broom Race with Seo-Ah</h2>
+        <button class="btn primary" style="font-size:16px;padding:6px 16px" data-act="skyDash">${r ? '🏁 Racing to Finish!' : '🏁 Start New Race with Seo-Ah!'}</button>
+        <button class="btn pink" style="font-size:16px;padding:6px 16px" data-act="skyBoost">⚡ Boost Speed!</button>
+      </div>
+      <div class="race-track" style="width:min(94vw,860px);background:rgba(35,21,66,0.75);border:2px solid rgba(255,217,119,0.7);border-radius:999px;padding:6px 18px;margin-bottom:6px;position:relative;height:38px;display:flex;align-items:center;justify-content:space-between;color:#fff6e6;font-weight:bold;font-size:14px">
+        <span>🚩 Start</span>
+        <div style="position:absolute;left:48px;right:48px;top:4px;bottom:4px">
+          <div id="race-seoah-pin" style="position:absolute;left:${sPct}%;top:0;transform:translateX(-50%);font-size:18px;transition:left .1s">🌸🧹</div>
+          <div id="race-michelle-pin" style="position:absolute;left:${mPct}%;bottom:0;transform:translateX(-50%);font-size:18px;transition:left .1s">🐢🧹</div>
+        </div>
+        <span>🏁 Finish</span>
+      </div>
+      <div class="sky-stage" id="sky-stage">
+        <canvas id="sky-canvas"></canvas>
+        <div class="sky-bubble">
+          <img src="assets/portrait-seoah.jpg" alt="Seo-Ah">
+          <span id="sky-seoah-msg">Slide your finger on the sky to steer through 🌈 Rainbow Rings for a speed boost!</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function bindSky() {
+    stopSky();
+    const cv = $('#sky-canvas');
+    const stage = $('#sky-stage');
+    if (!cv || !stage) return;
+    const ctx = cv.getContext('2d');
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const W = stage.clientWidth || 760;
+    const H = stage.clientHeight || 360;
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    ctx.scale(dpr, dpr);
+
+    if (!skyState) {
+      skyState = {
+        mx: W * 0.28, my: H * 0.42,
+        tx: W * 0.28, ty: H * 0.42,
+        sx: W * 0.26, sy: H * 0.68,
+        sTargetY: H * 0.68,
+        rings: 0, caught: 0,
+        raceActive: true, mDist: 0, sDist: 0, mBoost: 0,
+        items: [], trail: [], starsBg: [],
+        lastTime: performance.now(),
+        spawnTick: 0,
+      };
+      for (let i = 0; i < 36; i++) {
+        skyState.starsBg.push({ x: Math.random() * W, y: Math.random() * H * 0.85, r: 1 + Math.random() * 2, s: 0.4 + Math.random() * 0.8 });
+      }
+      for (let i = 0; i < 4; i++) spawnSkyItem(W, H, W * (0.45 + i * 0.18));
+    }
+
+    const steer = (clientX, clientY) => {
+      const r = cv.getBoundingClientRect();
+      skyState.tx = Math.max(60, Math.min(W - 60, clientX - r.left));
+      skyState.ty = Math.max(48, Math.min(H - 44, clientY - r.top));
+    };
+
+    cv.addEventListener('pointerdown', e => { e.preventDefault(); steer(e.clientX, e.clientY); skyState.mBoost = Math.min(1.8, skyState.mBoost + 0.35); });
+    cv.addEventListener('pointermove', e => { if (e.buttons || e.pointerType === 'touch') { e.preventDefault(); steer(e.clientX, e.clientY); } });
+    cv.addEventListener('touchstart', e => { if (e.touches[0]) { e.preventDefault(); steer(e.touches[0].clientX, e.touches[0].clientY); skyState.mBoost = Math.min(1.8, skyState.mBoost + 0.35); } }, { passive: false });
+    cv.addEventListener('touchmove', e => { if (e.touches[0]) { e.preventDefault(); steer(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
+
+    const SEOAH_FLY_CHEERS = [
+      'Whoa, you and Carrot are zooming ahead!! 🐢💨',
+      'Daebak! That rainbow ring made you super fast! 🌈',
+      'Wait for me, Michelle!! Hehe, racing you is so fun! 🌸🧹',
+      'Hwaiting, bestie!! The finish line is up ahead! 🏁✨',
+      'Look at Carrot\'s little ears in the wind! 🐢💖',
+    ];
+
+    function spawnSkyItem(w, h, startX) {
+      const roll = Math.random();
+      const kind = roll < 0.36 ? 'ring' : roll < 0.72 ? 'star' : roll < 0.88 ? 'honey' : 'cloud';
+      skyState.items.push({
+        kind,
+        x: startX || (w + 50),
+        y: 55 + Math.random() * (h - 115),
+        vx: kind === 'cloud' ? 95 : 150 + Math.random() * 45,
+        em: kind === 'star' ? '⭐' : kind === 'honey' ? '🍯' : '☁️',
+      });
+    }
+
+    function stepSky(now) {
+      if (scene !== 'sky') { stopSky(); return; }
+      const dt = Math.min(0.05, (now - skyState.lastTime) / 1000);
+      skyState.lastTime = now;
+
+      skyState.mBoost = Math.max(0, skyState.mBoost - dt * 0.65);
+
+      if (skyState.raceActive) {
+        // Michelle advances faster when boosted; friendly rubber-banding helps Michelle edge ahead near the finish
+        const catchup = skyState.sDist > skyState.mDist ? 1.5 : 0;
+        skyState.mDist = Math.min(100, skyState.mDist + (5.2 + skyState.mBoost * 6.5 + catchup) * dt);
+        skyState.sDist = Math.min(100, skyState.sDist + (4.7 + Math.sin(now / 600) * 1.1) * dt);
+
+        const mPin = $('#race-michelle-pin');
+        const sPin = $('#race-seoah-pin');
+        if (mPin) mPin.style.left = Math.round(skyState.mDist) + '%';
+        if (sPin) sPin.style.left = Math.round(skyState.sDist) + '%';
+
+        if (skyState.mDist >= 100 || skyState.sDist >= 100) {
+          skyState.raceActive = false;
+          const michelleWon = skyState.mDist >= skyState.sDist;
+          S.stars += 5;
+          const gotTrophy = !S.furniture.trophy && !S.roomItems.some(it => it.id === 'trophy');
+          if (gotTrophy) add(S.furniture, 'trophy', 1);
+          giveHearts(2);
+          SFX.magic();
+          save(); render();
+          say([
+            {
+              who: 'seoah',
+              text: michelleWon
+                ? '🏁 DAEBAK!! You and Carrot won the Broomstick Race, Michelle!! You\'re the fastest flyers at Starwillow! 🏆🧹 (+5 ⭐ & +2 💖)'
+                : '🏁 Photo finish!! That was the most exciting broom race ever, Michelle! Let\'s share the winner\'s stars! 🌈🧹 (+5 ⭐ & +2 💖)',
+            },
+            ...(gotTrophy ? [{ who: 'seoah', text: 'Look! Professor Hootsworth gave you the 🏆 Golden Broom Trophy for your bedroom!' }] : []),
+          ]);
+          return;
+        }
+      }
+
+      // Smoothly glide Michelle toward finger target; Seo-Ah races along her lane
+      const leadOffset = Math.max(-70, Math.min(90, (skyState.mDist - skyState.sDist) * 4));
+      skyState.mx += ((skyState.tx + leadOffset * 0.3) - skyState.mx) * Math.min(1, dt * 7.5);
+      skyState.my += (skyState.ty - skyState.my) * Math.min(1, dt * 7.5);
+      if (Math.random() < 0.04) skyState.sTargetY = 65 + Math.random() * (H - 130);
+      const targetSx = Math.max(60, Math.min(W - 90, skyState.mx - leadOffset - 30));
+      skyState.sx += (targetSx - skyState.sx) * Math.min(1, dt * 3.5);
+      skyState.sy += (skyState.sTargetY - skyState.sy) * Math.min(1, dt * 3.2);
+
+      if (Math.random() < 0.55) {
+        skyState.trail.push({ x: skyState.mx - 28, y: skyState.my + 4, life: 1, pink: false });
+        skyState.trail.push({ x: skyState.sx - 24, y: skyState.sy + 4, life: 1, pink: true });
+      }
+      skyState.trail.forEach(t => { t.x -= (110 + skyState.mBoost * 80) * dt; t.life -= dt * 1.9; });
+      skyState.trail = skyState.trail.filter(t => t.life > 0);
+
+      skyState.spawnTick += dt;
+      if (skyState.spawnTick > 0.78) {
+        skyState.spawnTick = 0;
+        spawnSkyItem(W, H);
+      }
+
+      // Clear & draw twilight sky + twinkling stars
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255, 245, 200, 0.85)';
+      skyState.starsBg.forEach(st => {
+        st.x -= (35 + skyState.mBoost * 45) * st.s * dt;
+        if (st.x < 0) st.x = W;
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw Finish Line banner when close to 100%!
+      if (skyState.raceActive && skyState.mDist > 82) {
+        const finX = W - ((skyState.mDist - 82) / 18) * (W - skyState.mx);
+        ctx.strokeStyle = 'rgba(255, 217, 119, 0.9)';
+        ctx.lineWidth = 6;
+        ctx.setLineDash([12, 12]);
+        ctx.beginPath(); ctx.moveTo(finX, 20); ctx.lineTo(finX, H - 20); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '32px sans-serif';
+        ctx.fillText('🏁', finX, 36);
+      }
+
+      // Sparkle trails
+      skyState.trail.forEach(t => {
+        ctx.fillStyle = t.pink ? `rgba(255, 170, 215, ${t.life})` : `rgba(255, 225, 115, ${t.life})`;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, 4 * t.life + 1, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Items (rainbow rings, stars, honey, clouds)
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = skyState.items.length - 1; i >= 0; i--) {
+        const it = skyState.items[i];
+        it.x -= (it.vx + skyState.mBoost * 75) * dt;
+        if (it.kind === 'ring') {
+          ctx.lineWidth = 5;
+          ctx.strokeStyle = '#ff9ec7';
+          ctx.beginPath(); ctx.ellipse(it.x, it.y, 16, 34, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = '#ffd977';
+          ctx.beginPath(); ctx.ellipse(it.x, it.y, 12, 28, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = '#8ef0c8';
+          ctx.beginPath(); ctx.ellipse(it.x, it.y, 8, 22, 0, 0, Math.PI * 2); ctx.stroke();
+        } else {
+          ctx.font = it.kind === 'cloud' ? '44px sans-serif' : '34px sans-serif';
+          ctx.fillText(it.em, it.x, it.y);
+        }
+
+        const distM = Math.hypot(it.x - skyState.mx, it.y - skyState.my);
+        if (distM < 46) {
+          if (it.kind === 'ring') {
+            skyState.rings++;
+            skyState.mBoost = 1.9;
+            skyState.mDist = Math.min(100, skyState.mDist + 7);
+            S.stars += 2;
+            SFX.magic();
+            const msgEl = $('#sky-seoah-msg');
+            if (msgEl) msgEl.textContent = SEOAH_FLY_CHEERS[skyState.rings % SEOAH_FLY_CHEERS.length];
+          } else if (it.kind === 'star') {
+            skyState.caught++;
+            skyState.mBoost = Math.min(1.8, skyState.mBoost + 0.8);
+            skyState.mDist = Math.min(100, skyState.mDist + 3.5);
+            S.stars += 1;
+            SFX.harvest();
+          } else if (it.kind === 'honey') {
+            skyState.caught++;
+            skyState.mDist = Math.min(100, skyState.mDist + 3);
+            S.honey = (S.honey || 0) + 1;
+            SFX.coin();
+          } else if (it.kind === 'cloud') {
+            skyState.ty = Math.max(55, skyState.my - 30);
+            SFX.tap();
+          }
+          updateHud(); save();
+          skyState.items.splice(i, 1);
+        } else if (it.x < -60) {
+          skyState.items.splice(i, 1);
+        }
+      }
+
+      // Draw Seo-Ah on her pink blossom broom
+      drawWitchOnBroom(ctx, skyState.sx, skyState.sy, {
+        robe: '#ffafd2', hat: '#f48fb1', hair: '#2a1b24', name: 'Seo-Ah 🌸', carrot: false,
+      });
+      // Draw Michelle (black braided hair + warm beige witch robe/hat) + Carrot in broom basket!
+      drawWitchOnBroom(ctx, skyState.mx, skyState.my, {
+        robe: '#e6cba8', hat: '#d4b083', hair: '#18161b', name: 'Michelle & Carrot 🐢', carrot: true,
+      });
+
+      skyRaf = requestAnimationFrame(stepSky);
+    }
+
+    skyState.lastTime = performance.now();
+    skyRaf = requestAnimationFrame(stepSky);
+  }
+
+  function drawWitchOnBroom(ctx, x, y, opt) {
+    ctx.save();
+    ctx.translate(x, y);
+    // Broomstick shaft & bristles
+    ctx.strokeStyle = '#8a5a36';
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(-36, 10); ctx.lineTo(32, 6); ctx.stroke();
+    ctx.fillStyle = '#e0a858';
+    ctx.beginPath(); ctx.moveTo(-34, 10); ctx.lineTo(-54, 2); ctx.lineTo(-52, 18); ctx.closePath(); ctx.fill();
+    // Carrot in front basket for Michelle!
+    if (opt.carrot) {
+      ctx.font = '20px sans-serif';
+      ctx.fillText('🐢', 24, -2);
+    }
+    // Robe body
+    ctx.fillStyle = opt.robe;
+    ctx.beginPath(); ctx.moveTo(-8, -4); ctx.lineTo(-20, 14); ctx.lineTo(8, 14); ctx.closePath(); ctx.fill();
+    // Hair & head
+    ctx.fillStyle = opt.hair;
+    ctx.beginPath(); ctx.arc(0, -12, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffe2cc';
+    ctx.beginPath(); ctx.arc(3, -11, 8, 0, Math.PI * 2); ctx.fill();
+    // Pointed Witch Hat
+    ctx.fillStyle = opt.hat;
+    ctx.beginPath(); ctx.ellipse(0, -18, 17, 4, -0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-11, -18); ctx.lineTo(1, -36); ctx.lineTo(11, -18); ctx.closePath(); ctx.fill();
+    // Name tag
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillStyle = 'rgba(255,248,235,0.92)';
+    ctx.fillText(opt.name, 0, 27);
+    ctx.restore();
+  }
+
+  function startSkyDash() {
+    if (!skyState) skyState = null;
+    if (skyState) {
+      skyState.raceActive = true;
+      skyState.mDist = 0;
+      skyState.sDist = 0;
+      skyState.mBoost = 1.0;
+    }
+    SFX.magic();
+    render();
+    const msgEl = $('#sky-seoah-msg');
+    if (msgEl) msgEl.textContent = 'Ready, set, FLY!! First broom to the 🏁 Finish Line wins! 🌈🧹';
+  }
+
+  // ---------- Class & Rich Seo-Ah Dialogues ----------
   function currentLesson() {
     if (S.lesson < LESSONS.length) return LESSONS[S.lesson];
     if (!S.bonusLesson) {
@@ -785,8 +1228,10 @@
         </div>
       </div>
       <div class="row">
-        <button class="btn pink" data-act="talk" ${S.daily.talked ? 'disabled' : ''}>💬 Chat with Seo-Ah</button>
-        <button class="btn pink" data-act="giftMenu" ${S.daily.gifted ? 'disabled' : ''}>🎁 Give a gift</button>
+        <button class="btn pink" data-act="talk">💬 Talk with Seo-Ah</button>
+        <button class="btn pink" data-act="giftMenu">🎁 Give a Gift</button>
+        <button class="btn primary" data-act="inviteSleepover">🎀 Invite for Sleepover</button>
+        <button class="btn primary" data-act="go" data-scene="sky">🧹 Fly Brooms</button>
       </div>
     </div>`;
   }
@@ -805,7 +1250,7 @@
       { who: 'owl', text: 'You have finished every lesson this term. You are a real Starwillow witch now! 🎓' },
       { who: 'seoah', text: 'We did it, Michelle!! Best witch friends forever! 💖' },
     );
-    else lines.push({ who: 'seoah', text: ['Yay! Hwaiting, Michelle! 💪', 'You\'re so good at this!', 'Carrot is clapping. Well… flapping. 🐢'][Math.floor(Math.random() * 3)] });
+    else lines.push({ who: 'seoah', text: ['Yay! Hwaiting, Michelle! 💪', 'You\'re so good at this!', 'Carrot is clapping. Well… flapping her flippers! 🐢'][Math.floor(Math.random() * 3)] });
     say(lines);
   }
 
@@ -819,19 +1264,103 @@
   }
 
   function talk() {
-    if (S.daily.talked) return;
-    S.daily.talked = true;
-    const chat = SEOAH_CHATS[(S.day - 1) % SEOAH_CHATS.length];
-    const [ko, en] = KOREAN_WORDS[S.daily.word % KOREAN_WORDS.length];
-    const unlock = giveHearts(1);
-    save(); render();
-    const lines = [
-      { who: 'seoah', text: chat },
-      { who: 'seoah', text: `Korean word of the day: ${ko} means "${en}"! 🇰🇷` },
-      { who: 'michelle', text: `${ko.split(' ')[0]}! I'll remember that. 💖` },
-    ];
-    if (unlock) pushUnlock(lines, unlock);
-    say(lines);
+    let unlock = null;
+    if (!S.daily.talked) {
+      S.daily.talked = true;
+      unlock = giveHearts(1);
+      save(); render();
+    }
+    const greeting = SEOAH_CHATS[(S.day + (S.storyIdx || 0)) % SEOAH_CHATS.length];
+    say([
+      {
+        who: 'seoah',
+        text: `${greeting} What do you want to do together, Michelle? 💖`,
+        choices: [
+          { label: '📖 Tell me a Witch School story!', pink: true, onPick: () => seoahStory() },
+          { label: '🇰🇷 Teach me a Korean word & quiz me!', pink: true, onPick: () => seoahQuiz() },
+          { label: '🔮 Read our Bestie Fortune!', onPick: () => seoahFortune() },
+          { label: '🎀 Come to my room for a Sleepover!', onPick: () => startSleepover() },
+          { label: '🧹 Let\'s go fly our brooms!', onPick: () => go('sky') },
+        ],
+      },
+    ], () => {
+      if (unlock) say([{ who: 'seoah', text: unlock.text }, { who: 'michelle', text: `Thank you, Seo-Ah!! (${FURNITURE[unlock.item].em} added to your Room)` }]);
+    });
+  }
+
+  function seoahStory() {
+    const st = SEOAH_STORIES[(S.storyIdx || 0) % SEOAH_STORIES.length];
+    S.storyIdx = (S.storyIdx || 0) + 1;
+    save();
+    say([
+      {
+        who: 'seoah',
+        text: st.q,
+        choices: st.opts.map(o => ({
+          label: o.label,
+          pink: true,
+          onPick: () => {
+            const unlock = giveHearts(1);
+            S.stars += 1;
+            save(); render();
+            const follow = [
+              { who: 'seoah', text: o.reply + ' (+1 💖 & +1 ⭐)' },
+            ];
+            if (unlock) pushUnlock(follow, unlock);
+            say(follow);
+          },
+        })),
+      },
+    ]);
+  }
+
+  function seoahQuiz() {
+    const idx = (S.daily.word || 0) % KOREAN_WORDS.length;
+    const [ko, rightEn] = KOREAN_WORDS[idx];
+    S.daily.word = idx + 1;
+    const wrong1 = KOREAN_WORDS[(idx + 3) % KOREAN_WORDS.length][1];
+    const wrong2 = KOREAN_WORDS[(idx + 7) % KOREAN_WORDS.length][1];
+    const opts = [
+      { label: `✨ "${rightEn}"`, correct: true },
+      { label: `🌙 "${wrong1}"`, correct: false },
+      { label: `🍄 "${wrong2}"`, correct: false },
+    ].sort(() => Math.random() - 0.5);
+    save();
+    say([
+      { who: 'seoah', text: `Today's Korean word is ${ko}! Ready for a quick bestie quiz, Michelle? 🇰🇷` },
+      {
+        who: 'seoah',
+        text: `What does ${ko} mean in English?`,
+        choices: opts.map(o => ({
+          label: o.label,
+          pink: true,
+          onPick: () => {
+            if (o.correct) {
+              const unlock = giveHearts(1);
+              S.stars += 2;
+              save(); render();
+              const lines = [{ who: 'seoah', text: `딩동댕 (Ding-dong-daeng) — Correct!! ${ko} means "${rightEn}"! You're a Korean superstar, Michelle! (+1 💖 & +2 ⭐)` }];
+              if (unlock) pushUnlock(lines, unlock);
+              say(lines);
+            } else {
+              say([{ who: 'seoah', text: `Close! 😊 ${ko} actually means "${rightEn}"! Let's practice it together: ${ko.split(' ')[0]}! 💖` }]);
+            }
+          },
+        })),
+      },
+    ]);
+  }
+
+  function seoahFortune() {
+    const cropNames = Object.values(CROPS).map(c => `${c.em} ${c.name}`);
+    const bakeNames = Object.values(BAKES).map(b => `${b.em} ${b.name}`);
+    const lc = cropNames[Math.floor(Math.random() * cropNames.length)];
+    const lb = bakeNames[Math.floor(Math.random() * bakeNames.length)];
+    S.stars += 1; save(); render();
+    say([
+      { who: 'seoah', text: `🔮 *peeks into her crystal ball* Ooh! Today your lucky garden plant is ${lc}, and our lucky bakery snack is ${lb}!` },
+      { who: 'seoah', text: 'And the stars say: Michelle, Seo-Ah, and Carrot will be best friends forever! (+1 ⭐)' },
+    ]);
   }
 
   function pushUnlock(lines, unlock) {
@@ -857,7 +1386,7 @@
 
   function gift(kind, id) {
     const bag = kind === 'bake' ? S.bakes : kind === 'crop' ? S.crops : S.potions;
-    if (!bag[id] || S.daily.gifted) return;
+    if (!bag[id]) return;
     add(bag, id, -1);
     S.daily.gifted = true;
     closeModal();
@@ -881,55 +1410,206 @@
     save(); render(); say(lines);
   }
 
-  // ---------- Room & Carrot's Little House ----------
+  // ---------- Free-Form Illustrated Bedroom, Carrot's House & Sleepover ----------
   function renderRoom() {
-    const tiles = S.room.map((f, i) => `<button class="tile" data-act="tile" data-i="${i}">${f ? FURNITURE[f].em : ''}</button>`).join('');
     const owned = Object.keys(S.furniture).filter(id => S.furniture[id] > 0);
     const tray = owned.length
       ? owned.map(id => `<button class="${roomSel === id ? 'sel' : ''}" data-act="pick" data-id="${id}" aria-label="${FURNITURE[id].name}">${FURNITURE[id].em}<small>${S.furniture[id]}</small></button>`).join('')
-      : '<span class="hint">Buy furniture in the shop, or make friends with Seo-Ah for gifts!</span>';
+      : '<span style="font-size:15px;font-weight:bold;color:var(--ink)">Drag items in your room to rearrange! Buy more in Shop 🛍️</span>';
     const cc = S.carrotCare || { fed: false, watered: false, loves: 1 };
+
+    const pieces = (S.roomItems || []).map((it, idx) => {
+      const f = FURNITURE[it.id];
+      if (!f) return '';
+      return `<button class="room-piece" data-room-idx="${idx}" style="left:${it.x}%;top:${it.y}%" title="Drag to move ${f.name}, or tap to put away">${f.em}</button>`;
+    }).join('');
+
+    const sleepoverBadge = S.sleepover
+      ? `<button class="room-piece" data-act="sleepoverMenu" style="left:48%;top:68%;font-size:20px;background:rgba(255,240,248,0.94);padding:8px 14px;border:3px solid var(--pink);border-radius:22px;display:flex;align-items:center;gap:8px;box-shadow:0 8px 20px rgba(0,0,0,.3)">
+          <img src="assets/portrait-seoah.jpg" alt="Seo-Ah" style="width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--pink)">
+          <div style="text-align:left;color:var(--ink)"><b>🎀 Seo-Ah's Sleepover!</b><br><small>Tap for midnight snacks &amp; games ✨</small></div>
+        </button>`
+      : '';
+
     return `<div class="scene bg-room">
-      <h2>🏡 Michelle &amp; Carrot's Room</h2>
-      <div class="carrot-house" id="carrot-house-box">
-        <div class="carrot-house-avatar">
-          <img src="assets/portrait-carrot.jpg" alt="Carrot">
-          <span class="carrot-house-roof">🏠</span>
-        </div>
-        <div class="carrot-house-info">
-          <div class="carrot-house-title">🐢🏡 Carrot's Little House · 💚 ${cc.loves}</div>
-          <div class="carrot-bowls">
-            <span class="bowl-tag">🥣 Food: ${cc.fed ? '🥕 Full &amp; Happy!' : 'Hungry'}</span>
-            <span class="bowl-tag">💧 Water: ${cc.watered ? '💦 Fresh &amp; Full!' : 'Thirsty'}</span>
+      <div class="critter-bar">
+        <h2 style="margin:0">🏡 Michelle &amp; Carrot's Room</h2>
+        <button class="btn pink" style="font-size:15px;padding:6px 14px" data-act="sleepoverMenu">🎀 ${S.sleepover ? 'Sleepover Games!' : 'Invite Seo-Ah for Sleepover!'}</button>
+        <button class="btn primary" style="font-size:15px;padding:6px 14px" data-act="sleep">🌙 Sleep (Next Day)</button>
+      </div>
+      <div class="room-stage" id="room-stage">
+        ${pieces}
+        ${sleepoverBadge}
+        <div class="carrot-corner" id="carrot-house-box">
+          <div class="carrot-corner-top">
+            <img src="assets/portrait-carrot.jpg" alt="Carrot">
+            <div>
+              <div style="font-weight:bold;font-size:16px;color:#6e3b10">🐢🏡 Carrot's House · 💚 ${cc.loves}</div>
+              <div style="font-size:13px">🥣 ${cc.fed ? '🥕 Fed!' : 'Hungry'} · 💧 ${cc.watered ? '💦 Watered!' : 'Thirsty'}</div>
+            </div>
+          </div>
+          <div class="carrot-corner-btns">
+            <button class="btn primary" data-act="feedCarrotHouse">🥕 Feed Her</button>
+            <button class="btn primary" data-act="waterCarrot">💧 Water</button>
+            <button class="btn pink" data-act="petCarrotHouse">💚 Pet</button>
           </div>
         </div>
-        <div class="carrot-house-btns">
-          <button class="btn primary" data-act="feedCarrotHouse">🥕 Feed Her</button>
-          <button class="btn primary" data-act="waterCarrot">💧 Give Water</button>
-          <button class="btn pink" data-act="petCarrotHouse">💚 Pet Her</button>
-        </div>
       </div>
-      <p class="hint">${roomSel ? `Tap a spot to place the ${FURNITURE[roomSel].name}.` : 'Pick furniture below, then tap where it goes in the room.'}</p>
-      <div class="tray">${tray}</div>
-      <div class="room-grid">${tiles}</div>
-      <div class="row"><button class="btn primary" data-act="sleep">🌙 Go to sleep (next day)</button></div>
+      <div class="room-bottom-bar">
+        <div class="tray">${tray}</div>
+      </div>
     </div>`;
   }
 
-  function tileTap(i) {
-    const here = S.room[i];
-    if (roomSel) {
-      if (here) add(S.furniture, here);
-      S.room[i] = roomSel;
-      add(S.furniture, roomSel, -1);
-      if (!S.furniture[roomSel]) roomSel = null;
-      SFX.plant();
-    } else if (here) {
-      add(S.furniture, here);
-      S.room[i] = null;
-      SFX.tap();
-    }
+  function bindRoom() {
+    const stage = $('#room-stage');
+    if (!stage) return;
+    let draggingIdx = null;
+    let moved = false;
+    let startPt = [0, 0];
+
+    stage.addEventListener('pointerdown', e => {
+      const piece = e.target.closest('[data-room-idx]');
+      if (piece) {
+        e.preventDefault();
+        draggingIdx = +piece.dataset.roomIdx;
+        moved = false;
+        startPt = [e.clientX, e.clientY];
+        try { piece.setPointerCapture(e.pointerId); } catch {}
+        return;
+      }
+      // If an item in the tray is selected and player taps open space in the room, place it there!
+      if (roomSel && !e.target.closest('.carrot-corner') && !e.target.closest('[data-act]')) {
+        const r = stage.getBoundingClientRect();
+        const x = Math.max(10, Math.min(88, Math.round(((e.clientX - r.left) / r.width) * 100)));
+        const y = Math.max(16, Math.min(86, Math.round(((e.clientY - r.top) / r.height) * 100)));
+        S.roomItems.push({ uid: 'it-' + Date.now(), id: roomSel, x, y });
+        add(S.furniture, roomSel, -1);
+        if (!S.furniture[roomSel]) roomSel = null;
+        SFX.plant();
+        save(); render();
+      }
+    });
+
+    stage.addEventListener('pointermove', e => {
+      if (draggingIdx === null) return;
+      if (Math.hypot(e.clientX - startPt[0], e.clientY - startPt[1]) > 6) moved = true;
+      if (!moved) return;
+      const r = stage.getBoundingClientRect();
+      const x = Math.max(8, Math.min(90, Math.round(((e.clientX - r.left) / r.width) * 100)));
+      const y = Math.max(14, Math.min(88, Math.round(((e.clientY - r.top) / r.height) * 100)));
+      const it = S.roomItems[draggingIdx];
+      if (it) {
+        it.x = x; it.y = y;
+        const dom = stage.querySelector(`[data-room-idx="${draggingIdx}"]`);
+        if (dom) { dom.style.left = x + '%'; dom.style.top = y + '%'; }
+      }
+    });
+
+    const endDrag = () => {
+      if (draggingIdx === null) return;
+      const idx = draggingIdx;
+      draggingIdx = null;
+      if (moved) {
+        SFX.tap(); save();
+      } else {
+        // Quick tap on a placed item puts it back in the tray so Michelle can swap it easily
+        const it = S.roomItems[idx];
+        if (it) {
+          add(S.furniture, it.id, 1);
+          S.roomItems.splice(idx, 1);
+          SFX.tap(); save(); render();
+          toast(`Put ${FURNITURE[it.id].name} back in your tray`);
+        }
+      }
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+  }
+
+  function startSleepover() {
+    S.sleepover = true;
+    scene = 'room';
+    SFX.magic();
     save(); render();
+    sleepoverModal();
+  }
+
+  function sleepoverModal() {
+    S.sleepover = true;
+    save();
+    if (scene === 'room') render();
+    openModal(`<h3>🎀🌙 Bestie Sleepover with Seo-Ah!</h3>
+      <p style="text-align:center;margin:2px 0 12px">Seo-Ah brought her pink sleeping bag &amp; flashlight to your room!</p>
+      <div class="list-item"><span class="em">🍪</span><div class="grow"><b>Midnight Cookie &amp; Tea Party</b><small>Share warm pastries and honey rice cakes (+2 ⭐ &amp; +1 💖)</small></div><button class="btn pink" data-act="sleepoverAct" data-id="snacks">Share</button></div>
+      <div class="list-item"><span class="em">🔦</span><div class="grow"><b>Pillow Fort Flashlight Stories</b><small>Pick a silly-spooky witch story under the blankets! (+1 💖)</small></div><button class="btn pink" data-act="sleepoverAct" data-id="stories">Tell Story</button></div>
+      <div class="list-item"><span class="em">🐢</span><div class="grow"><b>Glow-Star Stickers on Carrot</b><small>Decorate Carrot's shell with glowing stars (+1 💚 &amp; +1 💖)</small></div><button class="btn primary" data-act="sleepoverAct" data-id="stickers">Decorate</button></div>
+      <div class="list-item"><span class="em">🌟</span><div class="grow"><b>Wish on a Shooting Star</b><small>Look out the arched bedroom window together (+2 ⭐)</small></div><button class="btn primary" data-act="sleepoverAct" data-id="wish">Make Wish</button></div>
+      <div class="list-item"><span class="em">😴</span><div class="grow"><b>Goodnight Sleepover!</b><small>Fall asleep in the pillow fort until tomorrow (+2 💖)</small></div><button class="btn primary" data-act="sleepoverAct" data-id="goodnight">Sleep</button></div>
+      <div class="row"><button class="btn" data-act="close">Close</button></div>`);
+  }
+
+  function sleepoverAct(id) {
+    closeModal();
+    if (id === 'snacks') {
+      S.stars += 2;
+      const unlock = giveHearts(1);
+      save(); render();
+      const lines = [
+        { who: 'seoah', text: 'Yay!! Midnight cookies and strawberry milk on your lavender rug! Masisseo!! 🍪🍓 (+2 ⭐ & +1 💖)' },
+        { who: 'carrot', text: 'Carrot munches a tiny midnight carrot crumb beside the pillow fort! 🐢🥕' },
+      ];
+      if (unlock) pushUnlock(lines, unlock);
+      say(lines);
+    } else if (id === 'stories') {
+      say([
+        {
+          who: 'seoah',
+          text: '🔦 *clicks flashlight on under the blanket fort* Ooooh! Which midnight story should we tell, Michelle?',
+          choices: [
+            {
+              label: '👻 The Friendly Ghost in the Bakery!',
+              pink: true,
+              onPick: () => {
+                giveHearts(1); save(); render();
+                say([{ who: 'seoah', text: 'He only haunts the kitchen to Frost extra cupcakes at midnight!! 😂🧁 (+1 💖)' }]);
+              },
+            },
+            {
+              label: '🐸 The Frog Who Borrowed Prof. Hootsworth\'s Hat!',
+              pink: true,
+              onPick: () => {
+                giveHearts(1); save(); render();
+                say([{ who: 'seoah', text: 'Ribbit-hoo-hoo!! Carrot is laughing so hard her shell is shaking! 🐸🎩 (+1 💖)' }]);
+              },
+            },
+          ],
+        },
+      ]);
+    } else if (id === 'stickers') {
+      S.carrotCare = S.carrotCare || { fed: false, watered: false, loves: 1 };
+      S.carrotCare.loves += 1;
+      giveHearts(1); save(); render();
+      say([
+        { who: 'michelle', text: 'Look, Seo-Ah! We put glow-in-the-dark star stickers all over Carrot\'s shell! ✨🐢' },
+        { who: 'seoah', text: 'Gwiyeowo — she looks like a little galaxy turtle!! 🌟💖 (+1 💚 & +1 💖)' },
+      ]);
+    } else if (id === 'wish') {
+      S.stars += 2;
+      SFX.magic();
+      sparkle(window.innerWidth / 2, window.innerHeight / 3, ['🌠', '🌟', '✨'], 14);
+      save(); render();
+      say([
+        { who: 'seoah', text: 'Look out your window, Michelle — a shooting star over Starwillow Tower!! 🌠' },
+        { who: 'michelle', text: 'I wish for us and Carrot to have the most magical year at Witch School ever! ✨ (+2 ⭐)' },
+      ]);
+    } else if (id === 'goodnight') {
+      giveHearts(2);
+      sleep(true);
+      setTimeout(() => {
+        say([{ who: 'seoah', text: 'Good morning, Michelle!! Best sleepover ever — let\'s do it again soon! ☀️💖 (+2 💖)' }]);
+      }, 1300);
+    }
   }
 
   function sleep(viaPotion) {
@@ -1148,7 +1828,7 @@
   }
 
   // ---------- Rendering ----------
-  const SCENES = { garden: renderGarden, bakery: renderBakery, cauldron: renderCauldron, class: renderClass, room: renderRoom, shop: renderShop };
+  const SCENES = { garden: renderGarden, bakery: renderBakery, cauldron: renderCauldron, sky: renderSky, class: renderClass, room: renderRoom, shop: renderShop };
   function render() {
     const scroll = $('#scene .scene')?.scrollTop || 0;
     $('#scene').innerHTML = SCENES[scene]();
@@ -1156,6 +1836,8 @@
     document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.scene === scene));
     updateHud();
     if (scene === 'cauldron') bindCauldron();
+    if (scene === 'room') bindRoom();
+    if (scene === 'sky') bindSky(); else stopSky();
   }
 
   function go(next) {
@@ -1163,7 +1845,8 @@
     scene = next;
     SFX.tap();
     render();
-    $('#scene .scene').scrollTop = 0;
+    const sc = $('#scene .scene');
+    if (sc) sc.scrollTop = 0;
   }
 
   function startGame() {
@@ -1179,7 +1862,7 @@
         { who: 'seoah', text: 'Michelle! Over here! We\'re in the same class! Annyeong! 👋' },
         { who: 'michelle', text: 'Seo-Ah! Yay! Best friends AND classmates!' },
         { who: 'owl', text: 'Hoo-hoo! Welcome, young witches. Your first lesson: grow a Moonberry in your garden. Off you go!' },
-        { who: 'seoah', text: 'Tap a garden patch to plant a seed, then tap again to water it. Hwaiting! 💪' },
+        { who: 'seoah', text: 'Tap any soil bed in the garden to plant a seed, then tap again to water it. Hwaiting! 💪' },
       ]);
     }
   }
@@ -1202,6 +1885,15 @@
       case 'play': SFX.magic(); startGame(); break;
       case 'go': go(el.dataset.scene); break;
       case 'dialog-next': SFX.tap(); nextLine(); break;
+      case 'dialogChoice': {
+        const ch = activeChoices && activeChoices[+i];
+        activeChoices = null;
+        $('#dialog').classList.add('hidden');
+        SFX.tap();
+        if (ch && ch.onPick) ch.onPick();
+        else nextLine();
+        break;
+      }
       case 'close': SFX.tap(); closeModal(); break;
       case 'plot': plotTap(+i, el); break;
       case 'plant': plant(+i, id); break;
@@ -1238,14 +1930,35 @@
       case 'emptyPot': pot.forEach(p => add(S.crops, p)); pot = []; stir = 0; SFX.tap(); save(); render(); break;
       case 'stirBtn': if (pot.length) addStir(20); break;
       case 'brew': brew(); break;
+      case 'skyDash': startSkyDash(); break;
+      case 'skyBoost':
+        if (skyState) {
+          skyState.mBoost = 2.0;
+          skyState.mDist = Math.min(100, skyState.mDist + 5);
+          SFX.magic();
+        }
+        break;
       case 'owl': SFX.tap(); say([{ who: 'owl', text: currentLesson().intro }, { who: 'owl', text: '💡 ' + currentLesson().hint }]); break;
-      case 'seoah': S.daily.talked ? say([{ who: 'seoah', text: 'See you after class, Michelle! Don\'t forget to water your plants! 🌱' }]) : talk(); break;
+      case 'seoah': talk(); break;
       case 'talk': talk(); break;
       case 'turnIn': turnIn(); break;
       case 'giftMenu': SFX.tap(); giftMenu(); break;
       case 'gift': gift(kind, id); break;
-      case 'tile': tileTap(+i); break;
-      case 'pick': roomSel = roomSel === id ? null : id; SFX.tap(); render(); break;
+      case 'inviteSleepover': startSleepover(); break;
+      case 'sleepoverMenu': SFX.tap(); sleepoverModal(); break;
+      case 'sleepoverAct': sleepoverAct(id); break;
+      case 'pick':
+        if (S.furniture[id]) {
+          // Place item right onto a cozy spot in the bedroom immediately so Michelle sees it right away, and she can drag it anywhere!
+          const rx = 28 + Math.floor(Math.random() * 40);
+          const ry = 42 + Math.floor(Math.random() * 34);
+          S.roomItems.push({ uid: 'it-' + Date.now() + '-' + Math.random(), id, x: rx, y: ry });
+          add(S.furniture, id, -1);
+          roomSel = null;
+          SFX.plant(); save(); render();
+          toast(`Placed ${FURNITURE[id].name}! Drag it anywhere in your room ✨`);
+        }
+        break;
       case 'sleep': sleep(false); break;
       case 'buySeed': buySeed(id, el); break;
       case 'buyFurn': buyFurn(id, el); break;
@@ -1292,7 +2005,9 @@
     else if (S.music && !$('#game').classList.contains('hidden')) startMusic();
   });
 
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(r => r.update()).catch(() => {});
+  }
 
   window.__starwillow = { get state() { return S; }, get musicPlaying() { return !!musicTimer; } }; // for testing
 })();

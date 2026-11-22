@@ -57,7 +57,7 @@ const server = createServer(async (req, res) => {
 
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': ext === '.png' || ext === '.jpg' ? 'public, max-age=3600' : 'no-cache',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
       'x-amp-review-widget': 'off',
     });
     res.end(body);

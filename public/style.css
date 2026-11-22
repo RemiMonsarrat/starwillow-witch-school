@@ -100,14 +100,51 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 .scene h2 { margin: 4px 0 2px; font-size: 30px; color: var(--cream); text-shadow: 0 2px 6px rgba(0,0,0,.4); }
 .scene .hint { margin: 0 0 14px; color: var(--cream); opacity: .92; font-size: 18px; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
 
-.bg-garden { background: linear-gradient(#b9a2ef 0%, #f3b6d3 35%, #9fd88e 36%, #6fb86a 100%); }
-.bg-bakery { background: linear-gradient(#ffe3ec 0%, #ffd1dc 52%, #e0a97b 53%, #c48756 100%); }
+.bg-garden {
+  background: url(assets/bg-garden.jpg) center / cover no-repeat, #6fb86a;
+  justify-content: space-between; padding: 10px 14px calc(24px + var(--safe-bottom));
+}
+.bg-bakery {
+  background: url(assets/bg-bakery.jpg) center / cover no-repeat, #c48756;
+}
 .bg-cauldron { background: radial-gradient(circle at 50% 60%, #6b4a9c 0%, #3a2766 60%, #261a45 100%); }
+.bg-sky { background: linear-gradient(180deg, #2d1b54 0%, #5b3b8c 42%, #b978b5 78%, #f7b2ad 100%); padding-bottom: 90px; }
 .bg-class { background: linear-gradient(#e8c79a 0%, #e8c79a 60%, #a8754d 60%, #8e5f3c 100%); }
-.bg-room { background: linear-gradient(#f6d7e6 0%, #f6d7e6 55%, #d9b48f 55%, #c49a72 100%); }
+.bg-room {
+  background: url(assets/bg-room.jpg) center / cover no-repeat, #c49a72;
+  padding: 10px 14px calc(20px + var(--safe-bottom));
+}
 .bg-shop { background: linear-gradient(#ffe2a8 0%, #ffc98a 100%); }
-.bg-bakery h2, .bg-class h2, .bg-room h2, .bg-shop h2 { color: var(--ink); text-shadow: 0 2px 0 rgba(255,255,255,.6); }
-.bg-bakery .hint, .bg-class .hint, .bg-room .hint, .bg-shop .hint { color: var(--ink); text-shadow: none; }
+.bg-class h2, .bg-shop h2 { color: var(--ink); text-shadow: 0 2px 0 rgba(255,255,255,.6); }
+.bg-class .hint, .bg-shop .hint { color: var(--ink); text-shadow: none; }
+.bg-garden h2, .bg-bakery h2, .bg-room h2 {
+  background: rgba(46, 33, 80, 0.72); color: var(--cream);
+  padding: 4px 18px; border-radius: 999px; font-size: 24px;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+
+/* Broomstick Flying Mini-Game */
+.sky-bar {
+  display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  margin: 2px 0 8px; z-index: 3;
+}
+.sky-stage {
+  position: relative; width: min(94vw, 860px); height: clamp(290px, 54vh, 460px);
+  border-radius: 26px; overflow: hidden;
+  border: 4px solid rgba(255, 230, 168, 0.75);
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  background: linear-gradient(180deg, #231542 0%, #4d327c 45%, #a166ab 80%, #f2a7a6 100%);
+  touch-action: none;
+}
+#sky-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.sky-bubble {
+  position: absolute; left: 16px; top: 12px;
+  background: rgba(255, 246, 230, 0.94); color: var(--ink);
+  padding: 6px 14px; border-radius: 999px; font-weight: bold; font-size: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.22); pointer-events: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.sky-bubble img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid var(--pink); }
 
 /* Butterflies & Bees in Garden */
 .critter-bar {
@@ -188,19 +225,88 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 .carrot-house-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .carrot-house-btns .btn { font-size: 16px; padding: 8px 14px; }
 
-/* Garden */
-.plots { display: grid; grid-template-columns: repeat(3, minmax(110px, 170px)); gap: 18px; margin-top: 8px; }
-.plot {
-  aspect-ratio: 1; border-radius: 26px; position: relative;
-  background: radial-gradient(circle at 50% 40%, #a06a45, var(--soil));
-  box-shadow: inset 0 -8px 0 rgba(0,0,0,.18), 0 6px 0 #5e3b25;
-  display: flex; align-items: center; justify-content: center; font-size: 64px;
+/* Organic Garden Meadow (No boxy grid!) */
+.garden-meadow {
+  position: relative; width: min(96vw, 920px); flex: 1; min-height: 320px; max-height: 620px;
 }
-.plot:active { transform: scale(.95); }
-.plot.ready { animation: glow 1.4s ease-in-out infinite; }
-.plot .label { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 15px; color: var(--cream); font-weight: bold; }
-.plot .drops { position: absolute; top: 6px; right: 10px; font-size: 18px; }
-@keyframes glow { 50% { box-shadow: inset 0 -8px 0 rgba(0,0,0,.18), 0 6px 0 #5e3b25, 0 0 28px 8px rgba(255,230,120,.9); } }
+.mound {
+  position: absolute; transform: translate(-50%, -50%);
+  width: clamp(120px, 22vw, 200px); height: clamp(82px, 14vw, 130px);
+  border-radius: 50%; background: radial-gradient(ellipse at center, rgba(90, 52, 28, 0.22) 0%, rgba(90, 52, 28, 0) 72%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: clamp(48px, 6.2vw, 72px);
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
+  transition: transform .15s;
+}
+.mound:active { transform: translate(-50%, -50%) scale(.93); }
+.mound .plant-em { line-height: 1; transform: translateY(-6px); }
+.mound.ready .plant-em { animation: bounceCrop 1.3s ease-in-out infinite; filter: drop-shadow(0 0 16px rgba(255, 235, 130, 0.95)); }
+@keyframes bounceCrop { 50% { transform: translateY(-14px) scale(1.08); } }
+.mound .label {
+  background: rgba(46, 33, 80, 0.82); color: var(--cream);
+  padding: 3px 12px; border-radius: 999px; font-size: 14px; font-weight: bold;
+  white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.3);
+}
+.mound.ready .label { background: linear-gradient(#ffd977, #ffb347); color: #5a3300; }
+.mound .drops { position: absolute; top: 0; right: 18%; font-size: 22px; }
+
+/* Free-form Illustrated Bedroom (No boxy grid!) */
+.room-stage {
+  position: relative; width: min(96vw, 940px); flex: 1; min-height: 310px; max-height: 560px;
+  border-radius: 24px; touch-action: none;
+}
+.room-piece {
+  position: absolute; transform: translate(-50%, -50%);
+  font-size: clamp(46px, 6.5vw, 72px); line-height: 1;
+  background: transparent; padding: 6px; border-radius: 18px;
+  filter: drop-shadow(0 8px 10px rgba(45, 22, 8, 0.42));
+  touch-action: none; cursor: grab; z-index: 3;
+  transition: transform .1s;
+}
+.room-piece:active { transform: translate(-50%, -50%) scale(1.14); cursor: grabbing; z-index: 6; }
+.room-piece .rm-tag {
+  display: block; font-size: 11px; font-weight: bold;
+  background: rgba(46, 33, 80, 0.78); color: var(--cream);
+  padding: 2px 7px; border-radius: 999px; margin-top: 2px; opacity: 0.85;
+}
+.carrot-corner {
+  position: absolute; right: 2%; bottom: 8%;
+  background: rgba(255, 248, 231, 0.92); border: 3px solid #e09a4f;
+  border-radius: 22px; padding: 8px 12px; max-width: 310px;
+  box-shadow: 0 8px 20px rgba(0,0,0,.3); z-index: 4;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.carrot-corner-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.carrot-corner-top img { width: 44px; height: 44px; border-radius: 50%; border: 3px solid #ff9a3c; object-fit: cover; }
+.carrot-corner-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.carrot-corner-btns .btn { font-size: 14px; padding: 6px 10px; }
+.room-bottom-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  flex-wrap: wrap; width: min(96vw, 940px); margin-top: 6px; z-index: 5;
+}
+.tray {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  background: rgba(255, 246, 230, 0.9); padding: 6px 12px; border-radius: 20px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.25);
+}
+.tray button { font-size: 30px; padding: 4px 8px; border-radius: 12px; background: #fff; box-shadow: 0 3px 0 #d3b9c6; position: relative; }
+.tray button.sel { outline: 3px solid var(--plum); background: #ffe8f3; }
+.tray button small { position: absolute; bottom: -2px; right: 3px; font-size: 12px; font-weight: bold; }
+
+/* Dialog choices */
+.dialog-choices {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+}
+.choice-btn {
+  background: linear-gradient(#ffd977, #ffb347); color: #5a3300;
+  font-size: 17px; font-weight: bold; padding: 8px 16px; border-radius: 16px;
+  box-shadow: 0 4px 0 #c77c1e; text-align: left;
+}
+.choice-btn.pink {
+  background: linear-gradient(#ffc8e2, #ff94c2); color: #5a1033;
+  box-shadow: 0 4px 0 #c9558a;
+}
+.choice-btn:active { transform: translateY(2px); }
 
 /* Cauldron */
 .cauldron-wrap { position: relative; width: min(64vw, 340px); aspect-ratio: 1; margin: 6px 0 10px; touch-action: none; }
