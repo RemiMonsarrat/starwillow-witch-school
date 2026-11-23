@@ -26,6 +26,95 @@
   const recipeKey = ings => [...ings].sort().join('+');
   const RECIPE_BY_KEY = Object.fromEntries(Object.entries(RECIPES).map(([id, r]) => [recipeKey(r.ings), id]));
 
+  const RANDOM_POTION_TRAITS = {
+    moonberry:    { words: ['Moonlight', 'Berry', 'Dreamy', 'Starry'],     ems: ['🫐', '🌙', '🔮'], effects: ['glow', 'bubbles', 'starburst'] },
+    carrot:       { words: ['Carrot', 'Bouncy', 'Zoomy', 'Crunch'],        ems: ['🥕', '🐢', '⚡'], effects: ['carrotDance', 'zoom', 'giggle'] },
+    starflower:   { words: ['Sunny', 'Golden', 'Sunbeam', 'Twinkle'],      ems: ['🌼', '🌟', '☀️'], effects: ['starburst', 'glow', 'rainbow'] },
+    fairyblossom: { words: ['Blossom', 'Pink', 'Fairy', 'Petal'],          ems: ['🌸', '🦋', '🎀'], effects: ['petals', 'float', 'rainbow'] },
+    glowshroom:   { words: ['Glowshroom', 'Neon', 'Fizzy', 'Magic'],       ems: ['🍄', '🪄', '✨'], effects: ['bubbles', 'giggle', 'glow'] },
+    pumpkin:      { words: ['Cozy', 'Pumpkin', 'Spice', 'Autumn'],         ems: ['🎃', '🍁', '🍯'], effects: ['starburst', 'petals', 'float'] },
+  };
+  const POTION_FORMS = ['Fizz', 'Elixir', 'Sparkle Brew', 'Bubble Potion', 'Swirl', 'Tonic'];
+  const RANDOM_EFFECT_DESC = {
+    petals:      'A swirling shower of cherry blossoms!',
+    bubbles:     'Floating rainbow bubbles pop everywhere!',
+    starburst:   'Showers the sky in shooting stars!',
+    carrotDance: 'Makes Carrot do a super happy turtle dance!',
+    glow:        'Makes everything sparkle and shine.',
+    float:       'Whoosh! You float up like a balloon.',
+    giggle:      'Everything wiggles and giggles.',
+    rainbow:     'Paints the whole sky with rainbows.',
+    zoom:        'Carrot zooms around and waters every plant!',
+  };
+
+  const QUEST_POOL = [
+    { id: 'water2',   em: '💧', title: 'Water 2 plants in the Garden',           event: 'water',      goal: 2, reward: 4 },
+    { id: 'harvest2', em: '🌱', title: 'Pick 2 ripe crops in the Garden',        event: 'harvest',    goal: 2, reward: 5 },
+    { id: 'critter2', em: '🦋', title: 'Catch 2 butterflies or bees',            event: 'critter',    goal: 2, reward: 4 },
+    { id: 'brew1',    em: '🧪', title: 'Stir & brew a potion in the Cauldron',   event: 'brew',       goal: 1, reward: 5 },
+    { id: 'bake1',    em: '🍪', title: 'Bake a cookie, tart, or cake',           event: 'bake',       goal: 1, reward: 5 },
+    { id: 'carrot1',  em: '🐢', title: 'Feed or give water to Carrot',           event: 'carrotCare', goal: 1, reward: 4 },
+    { id: 'seoah1',   em: '💖', title: 'Talk or share a gift with Seo-Ah',       event: 'seoah',      goal: 1, reward: 4 },
+    { id: 'race1',    em: '🧹', title: 'Finish a Broom Race with Seo-Ah',        event: 'race',       goal: 1, reward: 6 },
+  ];
+
+  const PUZZLE_QUESTS = [
+    { id: 'sudoku1',    em: '🔢', title: 'Solve today\'s 4×4 Witch Sudoku',        event: 'puzzle', goal: 1, reward: 5, act: 'playSudoku' },
+    { id: 'crossword1', em: '🔤', title: 'Solve today\'s Witch Word Crossword',    event: 'puzzle', goal: 1, reward: 5, act: 'playCrossword' },
+    { id: 'memory1',    em: '🃏', title: 'Match all pairs in Spell Card Memory',   event: 'puzzle', goal: 1, reward: 5, act: 'playMemory' },
+  ];
+
+  // Verified 4x4 Sudoku puzzles (rows, cols, and 2x2 boxes all contain 1..4)
+  const SUDOKUS = [
+    {
+      given: [1,0,0,4, 0,4,1,0, 0,1,4,0, 4,0,0,1],
+      sol:   [1,2,3,4, 3,4,1,2, 2,1,4,3, 4,3,2,1],
+    },
+    {
+      given: [0,2,0,4, 4,0,2,0, 0,4,0,2, 2,0,4,0],
+      sol:   [1,2,3,4, 4,3,2,1, 3,4,1,2, 2,1,4,3],
+    },
+    {
+      given: [0,0,3,2, 3,2,0,0, 0,0,2,3, 2,3,0,0],
+      sol:   [4,1,3,2, 3,2,4,1, 1,4,2,3, 2,3,1,4],
+    },
+  ];
+
+  // Verified 6-col x 5-row Witch Crosswords
+  const CROSSWORDS = [
+    {
+      rows: 5, cols: 6,
+      clues: [
+        { num: 1, dir: 'A', r: 0, c: 0, ans: 'CARROT', hint: '1 Across: Michelle\'s cute turtle pet' },
+        { num: 1, dir: 'D', r: 0, c: 0, ans: 'CAKE',   hint: '1 Down: Frosting-topped bakery dessert' },
+        { num: 2, dir: 'D', r: 0, c: 4, ans: 'OWL',    hint: '2 Down: Prof. Hootsworth is a wise ___' },
+        { num: 3, dir: 'A', r: 2, c: 1, ans: 'BOWL',   hint: '3 Across: Dish for Carrot\'s water' },
+        { num: 4, dir: 'D', r: 2, c: 1, ans: 'BEE',    hint: '4 Down: Buzzing garden friend with honey' },
+      ],
+    },
+    {
+      rows: 5, cols: 5,
+      clues: [
+        { num: 1, dir: 'A', r: 0, c: 0, ans: 'WITCH', hint: '1 Across: Michelle & Seo-Ah go to ___ School' },
+        { num: 1, dir: 'D', r: 0, c: 0, ans: 'WAND',  hint: '1 Down: Star-tipped magic stick' },
+        { num: 2, dir: 'D', r: 0, c: 4, ans: 'HEART', hint: '2 Down: Pink symbol of best friends' },
+        { num: 3, dir: 'A', r: 2, c: 1, ans: 'SOFA',  hint: '3 Across: Another word for a comfy couch' },
+        { num: 4, dir: 'D', r: 2, c: 1, ans: 'SUN',   hint: '4 Down: Bright yellow star in the daytime sky' },
+        { num: 5, dir: 'A', r: 4, c: 1, ans: 'NEST',  hint: '5 Across: Cozy home for a little bird' },
+      ],
+    },
+    {
+      rows: 5, cols: 5,
+      clues: [
+        { num: 1, dir: 'A', r: 0, c: 0, ans: 'STARS', hint: '1 Across: Golden points you earn in class' },
+        { num: 1, dir: 'D', r: 0, c: 0, ans: 'SPELL', hint: '1 Down: Magic words in a witch book' },
+        { num: 2, dir: 'D', r: 0, c: 4, ans: 'SHOP',  hint: '2 Down: Where Mrs. Bramble sells seeds' },
+        { num: 3, dir: 'A', r: 2, c: 1, ans: 'HERO',  hint: '3 Across: Brave witch saving the day' },
+        { num: 4, dir: 'A', r: 4, c: 0, ans: 'LAMP',  hint: '4 Across: Moon ___ glows in your room' },
+      ],
+    },
+  ];
+
   const FURNITURE = {
     bed:      { name: 'Cozy Bed',          em: '🛏️', price: 0 },
     plant:    { name: 'Potted Plant',      em: '🪴', price: 6 },
@@ -189,6 +278,8 @@
       critters: {},
       carrotCare: { fed: false, watered: false, loves: 1 },
       potions: {},
+      customPotions: {},
+      customMixes: [],
       furniture: {},
       room,
       roomItems: [
@@ -202,6 +293,7 @@
       bonusLesson: null,
       giftsGiven: [],
       daily: { talked: false, gifted: false, carrot: false, wateredCarrot: false, word: 0 },
+      quests: null,
       sound: true,
       music: true,
       song: 0,
@@ -216,6 +308,47 @@
   let roomSel = null;
   let ovenBusy = false;
   let gardenCritters = [];
+
+  function makeDailyQuests(day) {
+    // Pick 2 Witch School activity quests + 1 Brain Game quest (Sudoku, Crossword, or Memory)
+    const pool = [...QUEST_POOL];
+    const picked = [];
+    let seed = (day * 2654435761) >>> 0;
+    for (let k = 0; k < 2 && pool.length; k++) {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      const idx = seed % pool.length;
+      const q = pool.splice(idx, 1)[0];
+      picked.push({ ...q, progress: 0, claimed: false });
+    }
+    const pq = PUZZLE_QUESTS[(day - 1) % PUZZLE_QUESTS.length];
+    picked.push({ ...pq, progress: 0, claimed: false });
+    return { day, items: picked, bonusClaimed: false };
+  }
+
+  function ensureQuests() {
+    if (!S.quests || S.quests.day !== S.day || !Array.isArray(S.quests.items) || !S.quests.items.length) {
+      S.quests = makeDailyQuests(S.day || 1);
+    }
+    return S.quests;
+  }
+  ensureQuests();
+
+  function trackQuest(event, amount = 1) {
+    const qState = ensureQuests();
+    let newlyCompleted = null;
+    qState.items.forEach(q => {
+      if (q.event === event && q.progress < q.goal) {
+        const before = q.progress;
+        q.progress = Math.min(q.goal, q.progress + amount);
+        if (before < q.goal && q.progress >= q.goal) newlyCompleted = q;
+      }
+    });
+    updateHud();
+    if (newlyCompleted) {
+      SFX.coin();
+      setTimeout(() => toast(`📋 Quest Complete: ${newlyCompleted.title}! Tap 📋 (+${newlyCompleted.reward} ⭐)`), 450);
+    }
+  }
 
   function spawnCritters() {
     const keys = Object.keys(CRITTERS);
@@ -239,6 +372,8 @@
       const s = Object.assign(newState(), JSON.parse(raw));
       s.bakes = s.bakes || {};
       s.critters = s.critters || {};
+      s.customPotions = s.customPotions || {};
+      s.customMixes = Array.isArray(s.customMixes) ? s.customMixes : [];
       s.carrotCare = Object.assign({ fed: false, watered: false, loves: 1 }, s.carrotCare || {});
       if (typeof s.honey !== 'number') s.honey = 1;
       if (typeof s.music !== 'boolean') s.music = true;
@@ -546,6 +681,14 @@
     $('#hud-hearts').textContent = S.hearts;
     const mb = $('#music-btn');
     if (mb) mb.textContent = S.music ? '🎵' : '🔇';
+    const qb = $('#quests-badge');
+    if (qb) {
+      const qs = ensureQuests();
+      const readyCount = qs.items.filter(q => q.progress >= q.goal && !q.claimed).length
+        + (qs.items.every(q => q.claimed) && !qs.bonusClaimed ? 1 : 0);
+      qb.textContent = readyCount;
+      qb.classList.toggle('hidden', readyCount === 0);
+    }
   }
 
   // ---------- Garden + Butterflies & Bees ----------
@@ -627,6 +770,7 @@
     sparkleAt(el, [info.em, '✨', info.honey ? '🍯' : '⭐'], 10);
     gardenCritters.splice(idx, 1);
     if (!gardenCritters.length) setTimeout(() => { spawnCritters(); if (scene === 'garden') render(); }, 900);
+    trackQuest('critter', 1);
     save(); render();
     toast(msg);
   }
@@ -698,6 +842,7 @@
       add(S.bakes, id, 1);
       S.stars += 2;
       SFX.magic();
+      trackQuest('bake', 1);
       save(); render();
       if ($('#oven-box')) sparkleAt($('#oven-box'), [b.em, '⭐', '✨'], 12);
       toast(`🛎️ Ding! Fresh ${b.name} ${b.em} (+2 ⭐)`);
@@ -725,11 +870,13 @@
       S.stars += 1;
       SFX.harvest();
       sparkleAt(el, [c.em, '⭐', '✨']);
+      trackQuest('harvest', 1);
       toast(`You picked ${n} ${c.name}${n > 1 ? 's' : ''}! +1 ⭐`);
     } else if (!p.watered) {
       p.watered = true;
       SFX.water();
       sparkleAt(el, ['💧', '💦'], 6);
+      trackQuest('water', 1);
     } else {
       const secs = Math.ceil(c.grow / 2 - p.progress);
       toast(`${c.name} is growing… ${secs}s 🌱`);
@@ -792,7 +939,7 @@
     const ready = pot.length > 0 && stir >= 100;
     return `<div class="scene bg-cauldron">
       <h2>🧪 Potion Room</h2>
-      <p class="hint">${pot.length ? 'Grab the big magic ladle with your finger and swirl the pot! ✨' : 'Tap 2 or 3 ingredients below to drop them into the cauldron.'}</p>
+      <p class="hint">${pot.length ? 'Grab the big magic ladle with your finger and swirl the pot! ✨' : 'Mix any 2 or 3 ingredients for classic or random potions!'}</p>
       <div class="cauldron-wrap" id="cauldron">
         <div class="cauldron"></div>
         <div class="brew" id="brew"></div>
@@ -896,14 +1043,54 @@
     }
   }
 
+  function getPotion(id) {
+    if (RECIPES[id]) return RECIPES[id];
+    if (S.customPotions && S.customPotions[id]) return S.customPotions[id];
+    return SOUP;
+  }
+
+  function makeRandomPotion(ings) {
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    const traits = ings.map(id => RANDOM_POTION_TRAITS[id] || RANDOM_POTION_TRAITS.moonberry);
+    const word1 = pick(traits[0].words);
+    const word2 = traits.length > 1 ? pick(traits[traits.length - 1].words) : 'Pure';
+    const form = pick(POTION_FORMS);
+    const name = word1 === word2 ? `${word1} ${form}` : `${word1} ${word2} ${form}`;
+    const em = pick(pick(traits).ems);
+    // Effect is weighted by the mixed ingredients so different mixes make different random magic!
+    const effectPool = traits.flatMap(t => t.effects);
+    const effect = pick(effectPool);
+    const ingList = ings.map(i => `${CROPS[i].em} ${CROPS[i].name}`).join(' + ');
+    const desc = `${RANDOM_EFFECT_DESC[effect]} (Mixed from ${ingList})`;
+    const sell = 4 + ings.length * 2;
+    const id = 'mix_' + Math.random().toString(36).slice(2, 8);
+    return { id, name, em, ings: [...ings], effect, desc, sell, custom: true };
+  }
+
   function brew() {
-    const key = recipeKey(pot);
+    const ings = [...pot];
+    const key = recipeKey(ings);
     const id = RECIPE_BY_KEY[key];
     pot = []; stir = 0;
     if (!id) {
-      add(S.potions, 'soup');
-      SFX.oops();
-      say([{ who: 'carrot', text: 'Blorp! It turned into Bubbly Mystery Soup 🥣. Carrot sniffs it… and sneezes. Try a different mix!' }]);
+      const custom = makeRandomPotion(ings);
+      S.customPotions = S.customPotions || {};
+      S.customPotions[custom.id] = custom;
+      add(S.potions, custom.id);
+      S.customMixes = S.customMixes || [];
+      const firstMix = !S.customMixes.includes(key);
+      SFX.magic();
+      sparkleAt($('#cauldron'), [custom.em, '🪄', '✨', '⭐'], 14);
+      if (firstMix) {
+        S.customMixes.push(key);
+        S.stars += 2;
+        say([
+          { who: 'michelle', text: `Ooh! Mixing ${ings.map(i => CROPS[i].em + ' ' + CROPS[i].name).join(' + ')} brewed a random ${custom.name} ${custom.em}! (+2 ⭐)` },
+          { who: 'carrot', text: `Carrot sniffs it with starry eyes! "${RANDOM_EFFECT_DESC[custom.effect]}"` },
+        ]);
+      } else {
+        toast(`🎲 Brewed random ${custom.name} ${custom.em}!`);
+      }
     } else {
       const r = RECIPES[id];
       add(S.potions, id);
@@ -918,6 +1105,7 @@
         toast(`You brewed a ${r.name} ${r.em}!`);
       }
     }
+    trackQuest('brew', 1);
     save(); render();
   }
 
@@ -1075,6 +1263,7 @@
             SFX.oops();
             skyState.bannerMsg = '🌸🏁 Seo-Ah Won the Race! "Hehe, I beat you! Steer into 🌈 Rings & dodge ⛈️ Clouds to beat me!" (+1 ⭐)';
           }
+          trackQuest('race', 1);
           save(); render();
           return;
         }
@@ -1328,8 +1517,9 @@
     if (!S.daily.talked) {
       S.daily.talked = true;
       unlock = giveHearts(1);
-      save(); render();
     }
+    trackQuest('seoah', 1);
+    save(); render();
     const greeting = SEOAH_CHATS[(S.day + (S.storyIdx || 0)) % SEOAH_CHATS.length];
     say([
       {
@@ -1438,8 +1628,8 @@
     });
     Object.keys(S.crops).forEach(id => rows.push(`<div class="list-item"><span class="em">${CROPS[id].em}</span><div class="grow"><b>${CROPS[id].name} × ${S.crops[id]}</b><small>${id === 'starflower' ? 'Seo-Ah LOVES these!' : 'A nice gift'}</small></div><button class="btn pink" data-act="gift" data-kind="crop" data-id="${id}">Give</button></div>`));
     Object.keys(S.potions).forEach(id => {
-      const p = id === 'soup' ? SOUP : RECIPES[id];
-      rows.push(`<div class="list-item"><span class="em">${p.em}</span><div class="grow"><b>${p.name} × ${S.potions[id]}</b><small>${['friend', 'rainbow'].includes(id) ? 'Seo-Ah LOVES these!' : id === 'soup' ? 'Hmm… are you sure? 😅' : 'A nice gift'}</small></div><button class="btn pink" data-act="gift" data-kind="potion" data-id="${id}">Give</button></div>`);
+      const p = getPotion(id);
+      rows.push(`<div class="list-item"><span class="em">${p.em}</span><div class="grow"><b>${p.name} × ${S.potions[id]}</b><small>${['friend', 'rainbow'].includes(id) || p.custom ? 'Seo-Ah LOVES these!' : id === 'soup' ? 'Hmm… are you sure? 😅' : 'A nice gift'}</small></div><button class="btn pink" data-act="gift" data-kind="potion" data-id="${id}">Give</button></div>`);
     });
     openModal(`<h3>🎁 Gift for Seo-Ah</h3>${rows.join('') || '<div class="empty">Nothing to give yet. Bake a cookie or grow something in the garden!</div>'}<div class="row"><button class="btn" data-act="close">Close</button></div>`);
   }
@@ -1450,7 +1640,8 @@
     add(bag, id, -1);
     S.daily.gifted = true;
     closeModal();
-    const loved = kind === 'bake' || id === 'starflower' || id === 'friend' || id === 'rainbow';
+    const pObj = kind === 'potion' ? getPotion(id) : null;
+    const loved = kind === 'bake' || id === 'starflower' || id === 'friend' || id === 'rainbow' || (pObj && pObj.custom);
     const lines = [];
     let unlock;
     if (id === 'soup') {
@@ -1459,6 +1650,9 @@
     } else if (kind === 'bake') {
       lines.push({ who: 'seoah', text: `You baked ${BAKES[id].name} ${BAKES[id].em} for me?! Masisseo — it's SO yummy, Michelle!! 🥹💖💖` });
       unlock = giveHearts(3);
+    } else if (pObj && pObj.custom) {
+      lines.push({ who: 'seoah', text: `Whoa, you invented ${pObj.name} ${pObj.em} yourself?! That's awesome, Michelle!! Daebak! 💖💖` });
+      unlock = giveHearts(2);
     } else if (loved) {
       lines.push({ who: 'seoah', text: id === 'friend' ? 'A Friendship Potion?! Michelle… that\'s the sweetest thing ever! 🥹💖' : 'WAH! This is my absolute favorite! Gomawo, Michelle!! 💖💖' });
       unlock = giveHearts(3);
@@ -1467,6 +1661,7 @@
       unlock = giveHearts(1);
     }
     if (unlock) pushUnlock(lines, unlock);
+    trackQuest('seoah', 1);
     save(); render(); say(lines);
   }
 
@@ -1679,9 +1874,10 @@
       S.day++;
       S.daily = { talked: false, gifted: false, carrot: false, wateredCarrot: false, word: (S.daily.word || 0) + 1 };
       S.carrotCare = Object.assign({ loves: 1 }, S.carrotCare, { fed: false, watered: false });
+      ensureQuests();
       spawnCritters();
       save(); render();
-      toast(`☀️ Good morning! Day ${S.day} at Starwillow`);
+      toast(`☀️ Good morning! Day ${S.day} — 3 new Daily Quests!`);
     }, 1100);
     if (!viaPotion) closeModal();
   }
@@ -1693,7 +1889,7 @@
     const sellRows = [
       ...Object.keys(S.bakes).map(id => ({ kind: 'bake', id, em: BAKES[id].em, name: BAKES[id].name, n: S.bakes[id], price: BAKES[id].sell })),
       ...Object.keys(S.crops).map(id => ({ kind: 'crop', id, em: CROPS[id].em, name: CROPS[id].name, n: S.crops[id], price: CROPS[id].sell })),
-      ...Object.keys(S.potions).map(id => { const p = id === 'soup' ? SOUP : RECIPES[id]; return { kind: 'potion', id, em: p.em, name: p.name, n: S.potions[id], price: p.sell }; }),
+      ...Object.keys(S.potions).map(id => { const p = getPotion(id); return { kind: 'potion', id, em: p.em, name: p.name, n: S.potions[id], price: p.sell }; }),
     ];
     const sell = sellRows.length
       ? sellRows.map(r => `<div class="shop-item"><div class="em">${r.em}</div><div class="nm">${r.name} × ${r.n}</div><button class="btn" data-act="sell" data-kind="${r.kind}" data-id="${r.id}">Sell +${r.price} ⭐</button></div>`).join('')
@@ -1723,7 +1919,7 @@
   function sell(kind, id) {
     const bag = kind === 'bake' ? S.bakes : kind === 'crop' ? S.crops : S.potions;
     if (!bag[id]) return;
-    const price = kind === 'bake' ? BAKES[id].sell : kind === 'crop' ? CROPS[id].sell : (id === 'soup' ? SOUP : RECIPES[id]).sell;
+    const price = kind === 'bake' ? BAKES[id].sell : kind === 'crop' ? CROPS[id].sell : getPotion(id).sell;
     add(bag, id, -1); S.stars += price;
     SFX.coin(); save(); render();
   }
@@ -1739,7 +1935,7 @@
     Object.keys(S.seeds).forEach(id => rows.push(`<div class="list-item"><span class="em">🌰</span><div class="grow"><b>${CROPS[id].name} seeds × ${S.seeds[id]}</b><small>Plant these in the Garden</small></div></div>`));
     Object.keys(S.crops).forEach(id => rows.push(`<div class="list-item"><span class="em">${CROPS[id].em}</span><div class="grow"><b>${CROPS[id].name} × ${S.crops[id]}</b><small>Use in potions or baking${id === 'carrot' ? ' — or feed Carrot!' : ''}</small></div>${id === 'carrot' ? '<button class="btn" data-act="feedCarrot">Feed Carrot</button>' : ''}</div>`));
     Object.keys(S.potions).forEach(id => {
-      const p = id === 'soup' ? SOUP : RECIPES[id];
+      const p = getPotion(id);
       rows.push(`<div class="list-item"><span class="em">${p.em}</span><div class="grow"><b>${p.name} × ${S.potions[id]}</b><small>${p.desc || 'Smells… interesting.'}</small></div><button class="btn primary" data-act="drink" data-id="${id}">Use</button></div>`);
     });
     openModal(`<h3>🎒 Michelle's Bag</h3>${rows.join('') || '<div class="empty">Your bag is empty.</div>'}<div class="row"><button class="btn" data-act="close">Close</button></div>`);
@@ -1751,11 +1947,17 @@
       return `<div class="list-item"><span class="em">${known ? r.em : '❓'}</span><div class="grow"><b>${known ? r.name : '??? Secret recipe'}</b>
         <small>${known ? r.ings.map(i => CROPS[i].em + ' ' + CROPS[i].name).join(' + ') + ' — ' + r.desc : `Uses ${r.ings.length} ingredients. Experiment or ask Professor Hootsworth!`}</small></div></div>`;
     }).join('');
-    openModal(`<h3>📖 Recipe Book (${S.discovered.length}/${Object.keys(RECIPES).length})</h3>${rows}<div class="row"><button class="btn" data-act="close">Close</button></div>`);
+    const customList = Object.values(S.customPotions || {});
+    const customHtml = customList.length
+      ? `<h4 style="margin:14px 0 8px;text-align:center">✨ Michelle's Invented Random Potions (${customList.length})</h4>` +
+        customList.slice(-8).reverse().map(c => `<div class="list-item"><span class="em">${c.em}</span><div class="grow"><b>${c.name}</b><small>${c.desc}</small></div></div>`).join('')
+      : `<p style="text-align:center;font-size:14px;opacity:.75;margin:10px 0 0">Tip: Mix any other 2–3 ingredients in the Cauldron to invent random potions! 🎲</p>`;
+    openModal(`<h3>📖 Recipe Book (${S.discovered.length}/${Object.keys(RECIPES).length})</h3>${rows}${customHtml}<div class="row"><button class="btn" data-act="close">Close</button></div>`);
   }
 
   function drink(id) {
     if (!S.potions[id]) return;
+    const potion = getPotion(id);
     add(S.potions, id, -1);
     closeModal(); save();
     const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
@@ -1764,10 +1966,20 @@
       say([{ who: 'michelle', text: 'Bleh! Tastes like soggy socks! 🤢' }, { who: 'carrot', text: 'Carrot hides in her shell, giggling.' }]);
       return render();
     }
-    const effect = RECIPES[id].effect;
+    const effect = potion.effect;
     SFX.magic();
-    if (effect === 'rainbow') { overlay('overlay-rainbow'); sparkle(cx, cy, ['🌈', '✨', '💜'], 14); toast('🌈 Rainbows everywhere!'); }
-    if (effect === 'glow') { overlay('overlay-glow'); sparkle(cx, cy, ['✨', '🌟', '💫'], 16); toast('✨ Everything is glowing!'); }
+    if (effect === 'rainbow') { overlay('overlay-rainbow'); sparkle(cx, cy, ['🌈', '✨', '💜'], 14); toast(`🌈 ${potion.name}: Rainbows everywhere!`); }
+    if (effect === 'glow') { overlay('overlay-glow'); sparkle(cx, cy, ['✨', '🌟', '💫'], 16); toast(`✨ ${potion.name}: Everything is glowing!`); }
+    if (effect === 'petals') { overlay('overlay-rainbow'); sparkle(cx, cy, ['🌸', '🌺', '🦋', '💖'], 18); toast(`🌸 ${potion.name}: Cherry blossom shower!`); }
+    if (effect === 'bubbles') { sparkle(cx, cy, ['🫧', '🫧', '🔮', '✨'], 20); toast(`🫧 ${potion.name}: Pop! Magic bubbles!`); }
+    if (effect === 'starburst') { overlay('overlay-glow'); sparkle(cx, cy, ['🌠', '⭐', '🌟', '💫'], 18); toast(`🌠 ${potion.name}: Shooting stars!`); }
+    if (effect === 'carrotDance') {
+      const c = $('#carrot-buddy');
+      c.classList.remove('zoomy'); void c.offsetWidth; c.classList.add('zoomy');
+      setTimeout(() => c.classList.remove('zoomy'), 2500);
+      sparkleAt(c, ['🐢', '🥕', '💃', '💚'], 12);
+      toast(`🐢💃 ${potion.name}: Carrot is doing a happy dance!`);
+    }
     if (effect === 'float') { document.body.classList.add('float'); setTimeout(() => document.body.classList.remove('float'), 3000); toast('🎈 Wheee, floating!'); }
     if (effect === 'giggle') { document.body.classList.add('giggle'); setTimeout(() => document.body.classList.remove('giggle'), 2500); toast('😆 Hee hee hee!'); }
     if (effect === 'sleep') { sleep(true); }
@@ -1820,6 +2032,7 @@
     S.carrotCare = S.carrotCare || { fed: false, watered: false, loves: 1 };
     S.carrotCare.fed = true;
     S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
+    trackQuest('carrotCare', 1);
     closeModal(); save(); render();
     sparkleAt($('#carrot-buddy'), ['🥕', '💚', '⭐'], 8);
     SFX.heart();
@@ -1840,6 +2053,7 @@
     S.carrotCare.fed = true;
     S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
     SFX.heart();
+    trackQuest('carrotCare', 1);
     save(); render();
     if ($('#carrot-house-box')) sparkleAt($('#carrot-house-box'), ['🥕', '💚', '⭐'], 10);
     toast(`🐢🥕 Carrot munched her ${snackName}! (+1 💚)`);
@@ -1851,6 +2065,7 @@
     S.carrotCare.watered = true;
     S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
     SFX.water();
+    trackQuest('carrotCare', 1);
     save(); render();
     if ($('#carrot-house-box')) sparkleAt($('#carrot-house-box'), ['💧', '💦', '💚'], 10);
     toast('🐢💧 Fresh cool water! Carrot splashes her flippers happily! (+1 💚)');
@@ -1863,6 +2078,286 @@
     save(); render();
     if ($('#carrot-house-box')) sparkleAt($('#carrot-house-box'), ['💚', '🐢', '✨'], 8);
     say([{ who: 'carrot', text: 'Carrot curls up inside her cozy little house and blinks happily at Michelle! 🐢🏡💚' }]);
+  }
+
+  // ---------- Daily Quests & Brain Mini-Games (Sudoku, Crossword, Memory) ----------
+  function questsModal() {
+    const qs = ensureQuests();
+    const rows = qs.items.map((q, idx) => {
+      const pct = Math.round((Math.min(q.progress, q.goal) / q.goal) * 100);
+      const done = q.progress >= q.goal;
+      let actionBtn = '';
+      if (q.claimed) actionBtn = '<span class="btn" style="opacity:.65;cursor:default">✅ Done</span>';
+      else if (done) actionBtn = `<button class="btn primary" data-act="claimQuest" data-i="${idx}">Claim +${q.reward} ⭐</button>`;
+      else if (q.act) actionBtn = `<button class="btn pink" data-act="${q.act}">Play ▶</button>`;
+      else actionBtn = `<span style="font-weight:bold;font-size:15px">${q.progress}/${q.goal}</span>`;
+
+      return `<div class="list-item ${q.claimed ? 'quest-done' : ''}">
+        <span class="em">${q.em}</span>
+        <div class="grow">
+          <b>${q.title}</b>
+          <small>Reward: +${q.reward} ⭐ Stars</small>
+          <div class="quest-prog"><div style="width:${pct}%"></div></div>
+        </div>
+        ${actionBtn}
+      </div>`;
+    }).join('');
+
+    const allClaimed = qs.items.every(q => q.claimed);
+    const allDone = qs.items.every(q => q.progress >= q.goal);
+    const bonusBtn = qs.bonusClaimed
+      ? '<span class="btn" style="opacity:.7">🎁 Claimed!</span>'
+      : `<button class="btn primary" data-act="claimQuestBonus" ${allDone ? '' : 'disabled'}>${allDone ? 'Open Chest! (+5 ⭐ +1 💖)' : 'Finish all 3 quests'}</button>`;
+
+    openModal(`<h3>📋 Day ${S.day} Daily Quests</h3>
+      ${rows}
+      <div class="list-item" style="background:#fff4d9;border:2px solid #f5c156">
+        <span class="em">🎁</span>
+        <div class="grow"><b>All-Done Bonus Chest</b><small>${allClaimed ? 'All daily rewards claimed!' : 'Complete all 3 quests for +5 ⭐ &amp; +1 💖'}</small></div>
+        ${bonusBtn}
+      </div>
+      <div style="margin-top:12px;text-align:center;font-weight:bold;font-size:16px">🧩 Play Brain Games Anytime!</div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn pink" data-act="playSudoku">🔢 4×4 Sudoku</button>
+        <button class="btn pink" data-act="playCrossword">🔤 Crossword</button>
+        <button class="btn pink" data-act="playMemory">🃏 Memory Match</button>
+      </div>
+      <div class="row"><button class="btn" data-act="close">Close</button></div>`);
+  }
+
+  function claimQuest(idx) {
+    const qs = ensureQuests();
+    const q = qs.items[idx];
+    if (!q || q.claimed || q.progress < q.goal) return;
+    q.claimed = true;
+    S.stars += q.reward;
+    SFX.coin();
+    sparkle(window.innerWidth / 2, window.innerHeight / 2, ['⭐', '✨', q.em], 12);
+    save(); render(); questsModal();
+  }
+
+  function claimQuestBonus() {
+    const qs = ensureQuests();
+    if (qs.bonusClaimed || !qs.items.every(q => q.progress >= q.goal)) return;
+    qs.items.forEach(q => {
+      if (!q.claimed) { q.claimed = true; S.stars += q.reward; }
+    });
+    qs.bonusClaimed = true;
+    S.stars += 5;
+    const unlock = giveHearts(1);
+    SFX.magic();
+    save(); render();
+    if (unlock) {
+      closeModal();
+      const lines = [{ who: 'seoah', text: 'You finished ALL today\'s quests, Michelle!! Hwaiting!! 🎁💖 (+5 ⭐ & +1 💖)' }];
+      pushUnlock(lines, unlock);
+      say(lines);
+    } else {
+      questsModal();
+      toast('🎁 Bonus Chest opened! +5 ⭐ & +1 💖!');
+    }
+  }
+
+  // ---------- 1) 4x4 Witch Sudoku ----------
+  let sudoState = null;
+  function startSudoku() {
+    const p = SUDOKUS[(S.day + Math.floor(Math.random() * SUDOKUS.length)) % SUDOKUS.length];
+    sudoState = {
+      given: [...p.given],
+      board: [...p.given],
+      sol: [...p.sol],
+      sel: p.given.findIndex(v => v === 0),
+      won: false,
+    };
+    renderSudokuModal();
+  }
+
+  function renderSudokuModal() {
+    if (!sudoState) return;
+    const cells = sudoState.board.map((v, i) => {
+      const r = Math.floor(i / 4), c = i % 4;
+      const isGiven = sudoState.given[i] > 0;
+      const isSel = sudoState.sel === i;
+      const boxBorder = `${r === 1 ? 'border-bottom:3px solid #6b4c9a;' : ''}${c === 1 ? 'border-right:3px solid #6b4c9a;' : ''}`;
+      return `<button class="sudo-cell ${isGiven ? 'given' : ''} ${isSel ? 'sel' : ''}" style="${boxBorder}" data-act="sudoCell" data-i="${i}">${v || ''}</button>`;
+    }).join('');
+    openModal(`<h3>🔢 4×4 Witch Sudoku</h3>
+      <p style="text-align:center;font-size:15px;margin:0 0 10px">Fill every row, column, and 2×2 box with <b>1, 2, 3, 4</b>!</p>
+      <div class="sudo-grid">${cells}</div>
+      <div class="row" style="margin-top:12px">
+        ${[1, 2, 3, 4].map(n => `<button class="btn primary" style="min-width:54px;font-size:22px" data-act="sudoNum" data-i="${n}">${n}</button>`).join('')}
+        <button class="btn" data-act="sudoNum" data-i="0">🧹</button>
+        <button class="btn pink" data-act="sudoHint">💡 Hint</button>
+      </div>
+      <div class="row"><button class="btn" data-act="quests">◀ Back to Quests</button><button class="btn" data-act="close">Close</button></div>`);
+  }
+
+  function checkSudokuWin() {
+    if (!sudoState || sudoState.won) return;
+    if (sudoState.board.every((v, i) => v === sudoState.sol[i])) {
+      sudoState.won = true;
+      S.stars += 3;
+      SFX.magic();
+      sparkle(window.innerWidth / 2, window.innerHeight / 2, ['🔢', '⭐', '✨', '🦉'], 16);
+      trackQuest('puzzle', 1);
+      save(); render();
+      closeModal();
+      say([{ who: 'owl', text: 'Hoo-hoo! Brilliant puzzle solving, Michelle! Every row, column, and box matches! (+3 ⭐)' }]);
+    }
+  }
+
+  // ---------- 2) Witch Word Crossword ----------
+  let cwState = null;
+  function startCrossword() {
+    const p = CROSSWORDS[(S.day - 1 + Math.floor(Math.random() * CROSSWORDS.length)) % CROSSWORDS.length];
+    const grid = Array.from({ length: p.rows }, () => Array(p.cols).fill(null));
+    const nums = Array.from({ length: p.rows }, () => Array(p.cols).fill(0));
+    p.clues.forEach(cl => {
+      if (!nums[cl.r][cl.c]) nums[cl.r][cl.c] = cl.num;
+      for (let k = 0; k < cl.ans.length; k++) {
+        const rr = cl.dir === 'A' ? cl.r : cl.r + k;
+        const cc = cl.dir === 'A' ? cl.c + k : cl.c;
+        grid[rr][cc] = cl.ans[k];
+      }
+    });
+    const user = grid.map(row => row.map(ch => (ch ? '' : null)));
+    // Pre-fill 1 starter letter so the puzzle feels welcoming
+    const first = p.clues[0];
+    user[first.r][first.c] = first.ans[0];
+    let firstSel = null;
+    for (let r = 0; r < p.rows && !firstSel; r++) {
+      for (let c = 0; c < p.cols && !firstSel; c++) {
+        if (grid[r][c] && !user[r][c]) firstSel = [r, c];
+      }
+    }
+    cwState = { p, grid, nums, user, sel: firstSel || [0, 0], won: false };
+    renderCrosswordModal();
+  }
+
+  function renderCrosswordModal() {
+    if (!cwState) return;
+    const { p, grid, nums, user, sel } = cwState;
+    const cells = [];
+    for (let r = 0; r < p.rows; r++) {
+      for (let c = 0; c < p.cols; c++) {
+        const ans = grid[r][c];
+        if (!ans) {
+          cells.push('<div class="cw-block"></div>');
+        } else {
+          const isSel = sel[0] === r && sel[1] === c;
+          const num = nums[r][c];
+          const ch = user[r][c] || '';
+          cells.push(`<button class="cw-cell ${isSel ? 'sel' : ''}" data-act="cwCell" data-i="${r},${c}">
+            ${num ? `<span class="cw-num">${num}</span>` : ''}${ch}
+          </button>`);
+        }
+      }
+    }
+    // Letter bank: all letters needed in this crossword + 2 decoys, sorted A-Z
+    const needed = new Set();
+    for (let r = 0; r < p.rows; r++) for (let c = 0; c < p.cols; c++) if (grid[r][c]) needed.add(grid[r][c]);
+    const letters = [...needed].sort();
+    const cluesHtml = p.clues.map(cl => `<div style="font-size:14px;margin-bottom:3px"><b>${cl.hint}</b></div>`).join('');
+
+    openModal(`<h3>🔤 Witch Word Crossword</h3>
+      <div class="cw-grid" style="grid-template-columns:repeat(${p.cols},44px)">${cells.join('')}</div>
+      <div style="background:#fff;border-radius:14px;padding:8px 12px;margin:10px 0">${cluesHtml}</div>
+      <div class="cw-keys">
+        ${letters.map(ch => `<button class="cw-key" data-act="cwKey" data-id="${ch}">${ch}</button>`).join('')}
+        <button class="cw-key" style="background:#ffe0e0" data-act="cwKey" data-id="">⌫</button>
+        <button class="cw-key" style="background:#ffe8a3" data-act="cwHint">💡</button>
+      </div>
+      <div class="row"><button class="btn" data-act="quests">◀ Back to Quests</button><button class="btn" data-act="close">Close</button></div>`);
+  }
+
+  function advanceCwCursor() {
+    const { p, grid, user } = cwState;
+    for (let r = 0; r < p.rows; r++) {
+      for (let c = 0; c < p.cols; c++) {
+        if (grid[r][c] && !user[r][c]) { cwState.sel = [r, c]; return; }
+      }
+    }
+  }
+
+  function checkCrosswordWin() {
+    if (!cwState || cwState.won) return;
+    const { p, grid, user } = cwState;
+    for (let r = 0; r < p.rows; r++) {
+      for (let c = 0; c < p.cols; c++) {
+        if (grid[r][c] && user[r][c] !== grid[r][c]) return;
+      }
+    }
+    cwState.won = true;
+    S.stars += 3;
+    SFX.magic();
+    sparkle(window.innerWidth / 2, window.innerHeight / 2, ['🔤', '⭐', '✨', '💖'], 16);
+    trackQuest('puzzle', 1);
+    save(); render();
+    closeModal();
+    say([{ who: 'seoah', text: 'Daebak!! You solved the whole Witch Crossword, Michelle!! (+3 ⭐)' }]);
+  }
+
+  // ---------- 3) Spell Card Memory Match ----------
+  let memState = null;
+  function startMemory() {
+    const icons = ['🐢', '🌸', '🧪', '🍪', '🦉', '🦋'];
+    const deck = [...icons, ...icons].sort(() => Math.random() - 0.5).map(em => ({ em, open: false, matched: false }));
+    memState = { deck, pick: [], lock: false, moves: 0, won: false };
+    renderMemoryModal();
+  }
+
+  function renderMemoryModal() {
+    if (!memState) return;
+    const cards = memState.deck.map((card, i) => {
+      const up = card.open || card.matched;
+      return `<button class="mem-card ${up ? 'up' : ''} ${card.matched ? 'matched' : ''}" data-act="memFlip" data-i="${i}">${up ? card.em : '🌟'}</button>`;
+    }).join('');
+    openModal(`<h3>🃏 Spell Card Memory</h3>
+      <p style="text-align:center;font-size:15px;margin:0 0 10px">Find all 6 matching witch pairs! (Moves: ${memState.moves})</p>
+      <div class="mem-grid">${cards}</div>
+      <div class="row" style="margin-top:12px"><button class="btn" data-act="quests">◀ Back to Quests</button><button class="btn" data-act="close">Close</button></div>`);
+  }
+
+  function flipMemory(i) {
+    if (!memState || memState.lock || memState.won) return;
+    const card = memState.deck[i];
+    if (!card || card.open || card.matched) return;
+    card.open = true;
+    memState.pick.push(i);
+    SFX.tap();
+    renderMemoryModal();
+    if (memState.pick.length === 2) {
+      memState.moves++;
+      const [a, b] = memState.pick;
+      if (memState.deck[a].em === memState.deck[b].em) {
+        memState.deck[a].matched = true;
+        memState.deck[b].matched = true;
+        memState.pick = [];
+        SFX.harvest();
+        renderMemoryModal();
+        if (memState.deck.every(c => c.matched)) {
+          memState.won = true;
+          S.stars += 3;
+          SFX.magic();
+          trackQuest('puzzle', 1);
+          save(); render();
+          setTimeout(() => {
+            closeModal();
+            say([{ who: 'seoah', text: `Woohoo!! You matched all 6 pairs in ${memState.moves} moves!! (+3 ⭐)` }]);
+          }, 450);
+        }
+      } else {
+        memState.lock = true;
+        setTimeout(() => {
+          if (!memState) return;
+          memState.deck[a].open = false;
+          memState.deck[b].open = false;
+          memState.pick = [];
+          memState.lock = false;
+          renderMemoryModal();
+        }, 650);
+      }
+    }
   }
 
   function musicModal() {
@@ -1976,6 +2471,7 @@
           add(S.bakes, id, -1); S.stars += 2;
           S.carrotCare = S.carrotCare || { fed: false, watered: false, loves: 1 };
           S.carrotCare.fed = true; S.carrotCare.loves = (S.carrotCare.loves || 0) + 1;
+          trackQuest('carrotCare', 1);
           closeModal(); SFX.heart(); save(); render();
           sparkleAt($('#carrot-buddy'), [b.em, '💚', '⭐'], 10);
           say([{ who: 'carrot', text: `NOM NOM! Carrot gobbled up the ${b.name} ${b.em}! She is the happiest turtle ever! (+1 💚 & +2 ⭐)` }]);
@@ -2025,6 +2521,77 @@
       case 'sell': sell(kind, id); break;
       case 'bag': SFX.tap(); bag(); break;
       case 'book': SFX.tap(); book(); break;
+      case 'quests': SFX.tap(); questsModal(); break;
+      case 'claimQuest': claimQuest(+i); break;
+      case 'claimQuestBonus': claimQuestBonus(); break;
+      case 'playSudoku': SFX.tap(); startSudoku(); break;
+      case 'sudoCell':
+        if (sudoState && !sudoState.given[+i]) { sudoState.sel = +i; SFX.tap(); renderSudokuModal(); }
+        break;
+      case 'sudoNum':
+        if (sudoState && sudoState.sel >= 0 && !sudoState.given[sudoState.sel]) {
+          sudoState.board[sudoState.sel] = +i;
+          SFX.tap();
+          const next = sudoState.board.findIndex((v, idx) => idx > sudoState.sel && v === 0);
+          if (next >= 0) sudoState.sel = next;
+          renderSudokuModal();
+          checkSudokuWin();
+        }
+        break;
+      case 'sudoHint':
+        if (sudoState) {
+          const idx = sudoState.board.findIndex((v, k) => v !== sudoState.sol[k]);
+          if (idx >= 0) {
+            sudoState.board[idx] = sudoState.sol[idx];
+            sudoState.sel = idx;
+            SFX.magic();
+            renderSudokuModal();
+            checkSudokuWin();
+          }
+        }
+        break;
+      case 'playCrossword': SFX.tap(); startCrossword(); break;
+      case 'cwCell':
+        if (cwState && i) {
+          const [rr, cc] = i.split(',').map(Number);
+          cwState.sel = [rr, cc];
+          SFX.tap();
+          renderCrosswordModal();
+        }
+        break;
+      case 'cwKey':
+        if (cwState) {
+          const [rr, cc] = cwState.sel;
+          if (cwState.grid[rr]?.[cc]) {
+            cwState.user[rr][cc] = id || '';
+            SFX.tap();
+            if (id) advanceCwCursor();
+            renderCrosswordModal();
+            checkCrosswordWin();
+          }
+        }
+        break;
+      case 'cwHint':
+        if (cwState) {
+          let [rr, cc] = cwState.sel;
+          if (!cwState.grid[rr]?.[cc] || cwState.user[rr][cc] === cwState.grid[rr][cc]) {
+            outer: for (let r = 0; r < cwState.p.rows; r++) {
+              for (let c = 0; c < cwState.p.cols; c++) {
+                if (cwState.grid[r][c] && cwState.user[r][c] !== cwState.grid[r][c]) { rr = r; cc = c; break outer; }
+              }
+            }
+          }
+          if (cwState.grid[rr]?.[cc]) {
+            cwState.user[rr][cc] = cwState.grid[rr][cc];
+            advanceCwCursor();
+            SFX.magic();
+            renderCrosswordModal();
+            checkCrosswordWin();
+          }
+        }
+        break;
+      case 'playMemory': SFX.tap(); startMemory(); break;
+      case 'memFlip': flipMemory(+i); break;
       case 'music': SFX.tap(); musicModal(); break;
       case 'toggleMusic':
         S.music = !S.music;
