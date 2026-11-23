@@ -115,6 +115,37 @@
     },
   ];
 
+  const WARDROBE = {
+    hats: {
+      beige:  { name: 'Cozy Beige Hat',       em: '👒', color: '#d4b083', trim: '#f4cf6a', price: 0 },
+      plum:   { name: 'Starlight Plum Hat',   em: '🧙‍♀️', color: '#6b45a8', trim: '#ffd966', price: 0 },
+      sakura: { name: 'Sakura Blossom Hat',   em: '🌸', color: '#f48fb1', trim: '#ffe4ef', price: 5 },
+      moon:   { name: 'Midnight Moon Hat',    em: '🌙', color: '#2b2459', trim: '#82f7ff', price: 8 },
+      crown:  { name: 'Star Princess Crown',  em: '👑', color: '#ffcf48', trim: '#ff70a6', crown: true, price: 12 },
+    },
+    robes: {
+      beige:  { name: 'Cozy Beige Robe',      em: '🤎', color: '#e6cba8', accent: '#c9975b', price: 0 },
+      plum:   { name: 'Lavender Star Robe',   em: '💜', color: '#8f6ad1', accent: '#ffd966', price: 0 },
+      pink:   { name: 'Sakura Hanbok Robe',   em: '🌸', color: '#ffafd2', accent: '#ff6ba8', price: 5 },
+      mint:   { name: 'Sky Mint Robe',        em: '🩵', color: '#8de4d5', accent: '#fff2a6', price: 6 },
+      gold:   { name: 'Golden Starlight Cape',em: '✨', color: '#ffd977', accent: '#b87cff', price: 10 },
+    },
+    carrot: {
+      bow:       { name: 'Cream Ribbon',       em: '🎀', price: 0 },
+      flower:    { name: 'Cherry Blossom',     em: '🌸', price: 0 },
+      straw:     { name: 'Tiny Straw Hat',     em: '👒', price: 4 },
+      shades:    { name: 'Cool Star Shades',   em: '🕶️', price: 6 },
+      butterfly: { name: 'Butterfly Friend',   em: '🦋', price: 6 },
+      crown:     { name: 'Turtle Queen Crown', em: '👑', price: 8 },
+    },
+  };
+  const DEFAULT_WARDROBE = {
+    owned: ['hats:beige', 'hats:plum', 'robes:beige', 'robes:plum', 'carrot:bow', 'carrot:flower'],
+    hats: 'beige',
+    robes: 'beige',
+    carrot: 'bow',
+  };
+
   const FURNITURE = {
     bed:      { name: 'Cozy Bed',          em: '🛏️', price: 0 },
     plant:    { name: 'Potted Plant',      em: '🪴', price: 6 },
@@ -294,6 +325,7 @@
       giftsGiven: [],
       daily: { talked: false, gifted: false, carrot: false, wateredCarrot: false, word: 0 },
       quests: null,
+      wardrobe: { ...DEFAULT_WARDROBE, owned: [...DEFAULT_WARDROBE.owned] },
       sound: true,
       music: true,
       song: 0,
@@ -374,6 +406,8 @@
       s.critters = s.critters || {};
       s.customPotions = s.customPotions || {};
       s.customMixes = Array.isArray(s.customMixes) ? s.customMixes : [];
+      s.wardrobe = Object.assign({ ...DEFAULT_WARDROBE, owned: [...DEFAULT_WARDROBE.owned] }, s.wardrobe || {});
+      if (!Array.isArray(s.wardrobe.owned)) s.wardrobe.owned = [...DEFAULT_WARDROBE.owned];
       s.carrotCare = Object.assign({ fed: false, watered: false, loves: 1 }, s.carrotCare || {});
       if (typeof s.honey !== 'number') s.honey = 1;
       if (typeof s.music !== 'boolean') s.music = true;
@@ -681,6 +715,16 @@
     $('#hud-hearts').textContent = S.hearts;
     const mb = $('#music-btn');
     if (mb) mb.textContent = S.music ? '🎵' : '🔇';
+    const w = S.wardrobe || DEFAULT_WARDROBE;
+    const hat = WARDROBE.hats[w.hats] || WARDROBE.hats.beige;
+    const robe = WARDROBE.robes[w.robes] || WARDROBE.robes.beige;
+    const car = WARDROBE.carrot[w.carrot] || WARDROBE.carrot.bow;
+    const av = $('#hud-avatar');
+    if (av) av.style.borderColor = robe.color;
+    const hb = $('#hud-hat-badge');
+    if (hb) hb.textContent = hat.em;
+    const cb = $('#carrot-acc-badge');
+    if (cb) cb.textContent = car.em;
     const qb = $('#quests-badge');
     if (qb) {
       const qs = ensureQuests();
@@ -1382,9 +1426,14 @@
       drawWitchOnBroom(ctx, skyState.sx, skyState.sy, {
         robe: '#ffafd2', hat: '#f48fb1', hair: '#2a1b24', name: 'Seo-Ah 🌸', carrot: false,
       });
-      // Draw Michelle (black braided hair + warm beige witch robe/hat) + Carrot in broom basket!
+      // Draw Michelle in her current Wardrobe outfit + Carrot in her accessory in the broom basket!
+      const mw = S.wardrobe || DEFAULT_WARDROBE;
+      const mHat = WARDROBE.hats[mw.hats] || WARDROBE.hats.beige;
+      const mRobe = WARDROBE.robes[mw.robes] || WARDROBE.robes.beige;
+      const cAcc = WARDROBE.carrot[mw.carrot] || WARDROBE.carrot.bow;
       drawWitchOnBroom(ctx, skyState.mx, skyState.my, {
-        robe: '#e6cba8', hat: '#d4b083', hair: '#18161b', name: 'Michelle & Carrot 🐢', carrot: true,
+        robe: mRobe.color, hat: mHat.color, trim: mHat.trim, crown: mHat.crown,
+        hair: '#18161b', name: 'Michelle & Carrot 🐢', carrot: true, carrotAcc: cAcc.em,
       });
 
       skyRaf = requestAnimationFrame(stepSky);
@@ -1407,6 +1456,10 @@
     if (opt.carrot) {
       ctx.font = '20px sans-serif';
       ctx.fillText('🐢', 24, -2);
+      if (opt.carrotAcc) {
+        ctx.font = '13px sans-serif';
+        ctx.fillText(opt.carrotAcc, 27, -14);
+      }
     }
     // Robe body
     ctx.fillStyle = opt.robe;
@@ -1416,10 +1469,20 @@
     ctx.beginPath(); ctx.arc(0, -12, 11, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#ffe2cc';
     ctx.beginPath(); ctx.arc(3, -11, 8, 0, Math.PI * 2); ctx.fill();
-    // Pointed Witch Hat
-    ctx.fillStyle = opt.hat;
-    ctx.beginPath(); ctx.ellipse(0, -18, 17, 4, -0.1, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-11, -18); ctx.lineTo(1, -36); ctx.lineTo(11, -18); ctx.closePath(); ctx.fill();
+    // Pointed Witch Hat or Crown
+    if (opt.crown) {
+      ctx.font = '20px sans-serif';
+      ctx.fillText('👑', 1, -24);
+    } else {
+      ctx.fillStyle = opt.hat;
+      ctx.beginPath(); ctx.ellipse(0, -18, 17, 4, -0.1, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-11, -18); ctx.lineTo(1, -36); ctx.lineTo(11, -18); ctx.closePath(); ctx.fill();
+      if (opt.trim) {
+        ctx.strokeStyle = opt.trim;
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-10, -19); ctx.lineTo(10, -19); ctx.stroke();
+      }
+    }
     // Name tag
     ctx.font = 'bold 12px sans-serif';
     ctx.fillStyle = 'rgba(255,248,235,0.92)';
@@ -1689,6 +1752,7 @@
     return `<div class="scene bg-room">
       <div class="critter-bar">
         <h2 style="margin:0">🏡 Michelle &amp; Carrot's Room</h2>
+        <button class="btn pink" style="font-size:15px;padding:6px 14px" data-act="wardrobe">👗 Dress Up</button>
         <button class="btn pink" style="font-size:15px;padding:6px 14px" data-act="sleepoverMenu">🎀 ${S.sleepover ? 'Sleepover Games!' : 'Invite Seo-Ah for Sleepover!'}</button>
         <button class="btn primary" style="font-size:15px;padding:6px 14px" data-act="sleep">🌙 Sleep (Next Day)</button>
       </div>
@@ -1697,7 +1761,10 @@
         ${sleepoverBadge}
         <div class="carrot-corner" id="carrot-house-box">
           <div class="carrot-corner-top">
-            <img src="assets/portrait-carrot.jpg" alt="Carrot">
+            <div style="position:relative;flex:none">
+              <img src="assets/portrait-carrot.jpg" alt="Carrot">
+              <span style="position:absolute;top:-5px;right:-4px;font-size:20px">${(WARDROBE.carrot[(S.wardrobe || DEFAULT_WARDROBE).carrot] || WARDROBE.carrot.bow).em}</span>
+            </div>
             <div>
               <div style="font-weight:bold;font-size:16px;color:#6e3b10">🐢🏡 Carrot's House · 💚 ${cc.loves}</div>
               <div style="font-size:13px">🥣 ${cc.fed ? '🥕 Fed!' : 'Hungry'} · 💧 ${cc.watered ? '💦 Watered!' : 'Thirsty'}</div>
@@ -2360,6 +2427,110 @@
     }
   }
 
+  // ---------- Dress-Up Wardrobe for Michelle & Carrot ----------
+  let wardrobeTab = 'hats';
+
+  function renderWardrobePreview() {
+    const w = S.wardrobe || DEFAULT_WARDROBE;
+    const hat = WARDROBE.hats[w.hats] || WARDROBE.hats.beige;
+    const robe = WARDROBE.robes[w.robes] || WARDROBE.robes.beige;
+    const car = WARDROBE.carrot[w.carrot] || WARDROBE.carrot.bow;
+
+    const hatSvg = hat.crown
+      ? `<polygon points="36,36 42,16 54,28 64,12 74,28 86,16 92,36" fill="${hat.color}" stroke="#7a4e10" stroke-width="3" stroke-linejoin="round"/>
+         <circle cx="64" cy="28" r="4" fill="${hat.trim}"/>`
+      : `<ellipse cx="64" cy="40" rx="44" ry="10" fill="${hat.color}" stroke="#4a2e16" stroke-width="3"/>
+         <path d="M36 40 Q56 4 64 4 Q76 4 92 40 Z" fill="${hat.color}" stroke="#4a2e16" stroke-width="3"/>
+         <path d="M40 36 Q64 42 88 36" fill="none" stroke="${hat.trim}" stroke-width="5" stroke-linecap="round"/>
+         <polygon points="88,20 90,26 96,27 91,31 92,37 88,34 84,37 85,31 80,27 86,26" fill="#ffdf6b" stroke="#8c5319" stroke-width="1.5"/>`;
+
+    const michelleSvg = `<svg viewBox="0 0 128 148" width="122" height="140" aria-label="Michelle dress-up preview">
+      <!-- Braided black hair -->
+      <ellipse cx="44" cy="84" rx="11" ry="26" fill="#1b1821" stroke="#0c0a0f" stroke-width="2"/>
+      <ellipse cx="84" cy="84" rx="11" ry="26" fill="#1b1821" stroke="#0c0a0f" stroke-width="2"/>
+      <circle cx="64" cy="60" r="26" fill="#1b1821"/>
+      <!-- Robe / Cape -->
+      <path d="M34 140 L46 84 L82 84 L94 140 Z" fill="${robe.color}" stroke="#4a2e16" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M46 84 Q64 98 82 84 L88 108 Q64 118 40 108 Z" fill="${robe.accent}" opacity="0.9"/>
+      <circle cx="64" cy="92" r="5" fill="#ffd966" stroke="#7a4e10" stroke-width="2"/>
+      <!-- Face & cute smile -->
+      <circle cx="64" cy="62" r="20" fill="#ffe3ce"/>
+      <path d="M44 56 Q64 38 84 56 Q72 48 64 52 Q54 48 44 56 Z" fill="#1b1821"/>
+      <circle cx="56" cy="64" r="3.2" fill="#2d1e18"/>
+      <circle cx="72" cy="64" r="3.2" fill="#2d1e18"/>
+      <circle cx="51" cy="69" r="3.5" fill="#ff9eb8" opacity="0.7"/>
+      <circle cx="77" cy="69" r="3.5" fill="#ff9eb8" opacity="0.7"/>
+      <path d="M59 71 Q64 76 69 71" fill="none" stroke="#a64b4b" stroke-width="2.5" stroke-linecap="round"/>
+      ${hatSvg}
+    </svg>`;
+
+    const carrotSvg = `<div style="text-align:center">
+      <div style="position:relative;display:inline-block">
+        <img src="assets/portrait-carrot.jpg" alt="Carrot" style="width:92px;height:92px;border-radius:50%;border:4px solid #ff9a3c;object-fit:cover">
+        <span style="position:absolute;top:-10px;right:-8px;font-size:34px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.35))">${car.em}</span>
+      </div>
+      <div style="font-weight:bold;font-size:14px;color:#6e3b10;margin-top:4px">Carrot · ${car.name}</div>
+    </div>`;
+
+    return `<div class="wardrobe-stage">
+      <div style="text-align:center">
+        ${michelleSvg}
+        <div style="font-weight:bold;font-size:14px;color:var(--plum)">Michelle · ${hat.name}</div>
+      </div>
+      ${carrotSvg}
+    </div>`;
+  }
+
+  function wardrobeModal(tab) {
+    if (tab) wardrobeTab = tab;
+    const w = S.wardrobe || DEFAULT_WARDROBE;
+    const items = WARDROBE[wardrobeTab];
+    const cards = Object.entries(items).map(([id, item]) => {
+      const key = `${wardrobeTab}:${id}`;
+      const isOwned = item.price === 0 || (w.owned && w.owned.includes(key));
+      const isWearing = w[wardrobeTab] === id;
+      let btn = '';
+      if (isWearing) btn = '<span class="btn" style="opacity:.7;cursor:default">✨ Wearing</span>';
+      else if (isOwned) btn = `<button class="btn pink" data-act="pickOutfit" data-kind="${wardrobeTab}" data-id="${id}">Wear</button>`;
+      else btn = `<button class="btn primary" data-act="pickOutfit" data-kind="${wardrobeTab}" data-id="${id}" ${S.stars < item.price ? 'disabled' : ''}>${item.price} ⭐</button>`;
+      return `<div class="outfit-card ${isWearing ? 'wearing' : ''}">
+        <div class="em">${item.em}</div>
+        <div class="nm">${item.name}</div>
+        ${btn}
+      </div>`;
+    }).join('');
+
+    openModal(`<h3>👗 Michelle &amp; Carrot's Wardrobe</h3>
+      ${renderWardrobePreview()}
+      <div class="wardrobe-tabs">
+        <button class="btn ${wardrobeTab === 'hats' ? 'sel' : ''}" data-act="wardrobeTab" data-id="hats">👒 Hats</button>
+        <button class="btn ${wardrobeTab === 'robes' ? 'sel' : ''}" data-act="wardrobeTab" data-id="robes">👘 Robes</button>
+        <button class="btn ${wardrobeTab === 'carrot' ? 'sel' : ''}" data-act="wardrobeTab" data-id="carrot">🐢 Carrot's Style</button>
+      </div>
+      <div class="outfit-grid">${cards}</div>
+      <div class="row"><button class="btn" data-act="close">Close</button></div>`);
+  }
+
+  function pickOutfit(cat, id, el) {
+    const item = WARDROBE[cat]?.[id];
+    if (!item) return;
+    S.wardrobe = S.wardrobe || { ...DEFAULT_WARDROBE, owned: [...DEFAULT_WARDROBE.owned] };
+    const key = `${cat}:${id}`;
+    const isOwned = item.price === 0 || S.wardrobe.owned.includes(key);
+    if (!isOwned) {
+      if (S.stars < item.price) return;
+      S.stars -= item.price;
+      S.wardrobe.owned.push(key);
+      SFX.coin();
+      toast(`🛍️ Bought ${item.name} ${item.em}!`);
+    } else {
+      SFX.magic();
+    }
+    S.wardrobe[cat] = id;
+    sparkle(window.innerWidth / 2, window.innerHeight / 3, [item.em, '✨', '💖'], 10);
+    save(); render(); wardrobeModal(cat);
+  }
+
   function musicModal() {
     const songRows = SONGS.map((s, idx) => `<div class="list-item">
       <span class="em">${S.song === idx && S.music ? '🎶' : '🎵'}</span>
@@ -2522,6 +2693,9 @@
       case 'bag': SFX.tap(); bag(); break;
       case 'book': SFX.tap(); book(); break;
       case 'quests': SFX.tap(); questsModal(); break;
+      case 'wardrobe': SFX.tap(); wardrobeModal(); break;
+      case 'wardrobeTab': SFX.tap(); wardrobeModal(id); break;
+      case 'pickOutfit': pickOutfit(kind, id, el); break;
       case 'claimQuest': claimQuest(+i); break;
       case 'claimQuestBonus': claimQuestBonus(); break;
       case 'playSudoku': SFX.tap(); startSudoku(); break;
