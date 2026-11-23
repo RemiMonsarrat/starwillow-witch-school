@@ -132,6 +132,10 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
   background: url(assets/bg-garden.jpg) center / cover no-repeat, #6fb86a;
   justify-content: space-between; padding: 10px 14px calc(24px + var(--safe-bottom));
 }
+.bg-forest {
+  background: url(assets/bg-forest.jpg) center / cover no-repeat, #5e8c61;
+  justify-content: space-between; padding: 10px 14px calc(20px + var(--safe-bottom));
+}
 .bg-bakery {
   background: url(assets/bg-bakery.jpg) center / cover no-repeat, #c48756;
 }
@@ -149,7 +153,7 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 .bg-shop {
   background: url(assets/bg-shop.jpg) center / cover no-repeat, #ffc98a;
 }
-.bg-garden h2, .bg-bakery h2, .bg-cauldron h2, .bg-class h2, .bg-room h2, .bg-shop h2 {
+.bg-garden h2, .bg-forest h2, .bg-bakery h2, .bg-cauldron h2, .bg-class h2, .bg-room h2, .bg-shop h2 {
   background: rgba(46, 33, 80, 0.76); color: var(--cream);
   padding: 4px 18px; border-radius: 999px; font-size: 24px;
   backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
@@ -298,12 +302,13 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 }
 .room-piece {
   position: absolute; transform: translate(-50%, -50%);
-  font-size: clamp(46px, 6.5vw, 72px); line-height: 1;
+  font-size: clamp(64px, 8.5vw, 108px); line-height: 1;
   background: transparent; padding: 6px; border-radius: 18px;
-  filter: drop-shadow(0 8px 10px rgba(45, 22, 8, 0.42));
+  filter: drop-shadow(0 10px 12px rgba(45, 22, 8, 0.45));
   touch-action: none; cursor: grab; z-index: 3;
   transition: transform .1s;
 }
+.room-piece.big-piece { font-size: clamp(96px, 13vw, 158px); }
 .room-piece:active { transform: translate(-50%, -50%) scale(1.14); cursor: grabbing; z-index: 6; }
 .room-piece .rm-tag {
   display: block; font-size: 11px; font-weight: bold;
@@ -505,6 +510,46 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 }
 .mem-card.up { background: #fff; color: var(--ink); box-shadow: 0 4px 0 #d3b9c6; }
 .mem-card.matched { background: #e9ffed; box-shadow: 0 4px 0 #7cc77a; }
+
+/* Starlight Forest Foraging Map */
+.forest-map {
+  position: relative; width: min(96vw, 940px); flex: 1; min-height: 310px; max-height: 580px;
+  border-radius: 24px; touch-action: manipulation;
+}
+.forage-node {
+  position: absolute; transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 245, 190, 0.85) 0%, rgba(255, 245, 190, 0) 70%);
+  width: clamp(68px, 11vw, 96px); height: clamp(68px, 11vw, 96px); border-radius: 50%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-size: clamp(34px, 4.8vw, 48px);
+  filter: drop-shadow(0 5px 8px rgba(0,0,0,.4));
+  animation: bob 2.2s ease-in-out infinite; z-index: 3;
+}
+.forage-node:active { transform: translate(-50%, -50%) scale(1.16); }
+.forage-node .f-tag {
+  background: rgba(46, 33, 80, 0.82); color: var(--cream); font-size: 11px; font-weight: bold;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap; margin-top: -2px;
+}
+.forest-trio {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; align-items: flex-end; gap: 4px; pointer-events: none; z-index: 4;
+  transition: left .55s cubic-bezier(.25,.8,.25,1), top .55s cubic-bezier(.25,.8,.25,1);
+}
+.trio-avatar {
+  position: relative; width: 46px; height: 46px; border-radius: 50%;
+  border: 3px solid #fff; box-shadow: 0 6px 12px rgba(0,0,0,.4); background: #fff;
+}
+.trio-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.trio-badge {
+  position: absolute; top: -10px; right: -6px; font-size: 20px;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.45));
+}
+.trio-carrot { width: 38px; height: 38px; border-color: #ff9a3c; }
+.forest-note {
+  background: rgba(255, 248, 231, 0.94); color: var(--ink); font-weight: bold;
+  padding: 6px 16px; border-radius: 999px; font-size: 15px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.28); max-width: 92vw; text-align: center;
+}
 
 /* Dress-up Wardrobe */
 .wardrobe-stage {

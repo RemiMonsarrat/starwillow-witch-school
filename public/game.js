@@ -56,6 +56,7 @@
     { id: 'carrot1',  em: '🐢', title: 'Feed or give water to Carrot',           event: 'carrotCare', goal: 1, reward: 4 },
     { id: 'seoah1',   em: '💖', title: 'Talk or share a gift with Seo-Ah',       event: 'seoah',      goal: 1, reward: 4 },
     { id: 'race1',    em: '🧹', title: 'Finish a Broom Race with Seo-Ah',        event: 'race',       goal: 1, reward: 6 },
+    { id: 'forage3',  em: '🌲', title: 'Forage 3 treasures in Starlight Forest', event: 'forage',     goal: 3, reward: 5 },
   ];
 
   const PUZZLE_QUESTS = [
@@ -825,6 +826,145 @@
       return `<div class="list-item"><span class="em">${n ? c.em : '❔'}</span><div class="grow"><b>${n ? c.name : '??? Mystery Critter'}</b><small>${c.kind === 'bee' ? 'Gives sweet 🍯 Honey for baking!' : 'Flutters over Michelle\'s garden flowers.'} · Caught: ${n}</small></div></div>`;
     }).join('');
     openModal(`<h3>🦋 Butterfly &amp; Bee Jar (${totalCritters()})</h3>${rows}<div class="row"><button class="btn" data-act="close">Close</button></div>`);
+  }
+
+  // ---------- Starlight Forest Foraging Map (Explore with Carrot & Seo-Ah) ----------
+  const FOREST_LANDMARKS = [
+    { x: 11, y: 66, place: 'Berry Bush' },
+    { x: 17, y: 47, place: 'Mossy Stump' },
+    { x: 42, y: 70, place: 'Crystal Brook' },
+    { x: 46, y: 41, place: 'Sunny Glade' },
+    { x: 68, y: 31, place: 'Blossom Arch' },
+    { x: 83, y: 53, place: 'Old Oak Stump' },
+    { x: 89, y: 75, place: 'Mushroom Nook' },
+  ];
+  const FOREST_AREAS = ['🌿 Whispering Brook', '🌸 Blossom Arch Trail', '🍄 Mushroom Hollow'];
+  const FOREST_FINDS = [
+    { kind: 'crop', id: 'glowshroom',   em: '🍄', label: 'Glowshroom',      note: 'Seo-Ah: "Ooh, a glowing mushroom right by the moss!"' },
+    { kind: 'crop', id: 'moonberry',    em: '🫐', label: 'Wild Moonberry',  note: 'Seo-Ah: "Sweet wild Moonberries! Perfect for tarts!"' },
+    { kind: 'crop', id: 'fairyblossom', em: '🌸', label: 'Fairy Blossom',   note: 'Seo-Ah: "A pink fairy blossom fluttered onto your sleeve!"' },
+    { kind: 'crop', id: 'starflower',   em: '🌼', label: 'Starflower',      note: 'Seo-Ah: "Look Michelle, a sunny Starflower!"' },
+    { kind: 'honey',                    em: '🍯', label: 'Tree Honey',      note: 'Carrot: *sniff sniff* Wild tree honey for baking! 🐝' },
+    { kind: 'seed', id: 'pumpkin',      em: '🎃', label: 'Pumpkin Seed',    note: 'Carrot dug up a rare Pumpkin seed under the roots!' },
+    { kind: 'seed', id: 'glowshroom',   em: '🌰', label: 'Glowshroom Seed', note: 'Carrot found a cozy spore seed for your garden!' },
+    { kind: 'gem',                      em: '💎', label: 'Moon Crystal',    note: 'Seo-Ah: "Daebak!! A sparkling Moon Crystal! (+3 ⭐)"' },
+    { kind: 'clover',                   em: '🍀', label: '4-Leaf Clover',   note: 'Seo-Ah: "Lucky 4-leaf clover for us and Carrot! (+2 ⭐)"' },
+  ];
+
+  let forestState = null;
+  function spawnForest(areaIdx) {
+    const area = typeof areaIdx === 'number' ? areaIdx % FOREST_AREAS.length : (forestState ? forestState.area : 0);
+    const spots = FOREST_LANDMARKS.map((lm, idx) => {
+      if (Math.random() < 0.22 && idx !== 2 && idx !== 4) return null; // leave 5-6 organic spawns
+      const item = FOREST_FINDS[Math.floor(Math.random() * FOREST_FINDS.length)];
+      return { ...lm, item, collected: false };
+    }).filter(Boolean);
+    forestState = {
+      area,
+      trioX: forestState ? forestState.trioX : 54,
+      trioY: forestState ? forestState.trioY : 58,
+      note: `Exploring ${FOREST_AREAS[area]} with Seo-Ah & Carrot! Tap sparkling spots or anywhere on the path!`,
+      spots,
+    };
+  }
+  spawnForest(0);
+
+  function renderForest() {
+    if (!forestState) spawnForest(0);
+    const w = S.wardrobe || DEFAULT_WARDROBE;
+    const mHat = WARDROBE.hats[w.hats] || WARDROBE.hats.beige;
+    const mRobe = WARDROBE.robes[w.robes] || WARDROBE.robes.beige;
+    const cAcc = WARDROBE.carrot[w.carrot] || WARDROBE.carrot.bow;
+
+    const nodes = forestState.spots.map((sp, idx) => {
+      if (sp.collected) return '';
+      return `<button class="forage-node" data-act="forage" data-i="${idx}" style="left:${sp.x}%;top:${sp.y}%" title="Forage ${sp.item.label} at ${sp.place}">
+        <span>${sp.item.em}</span>
+        <span class="f-tag">${sp.item.label}</span>
+      </button>`;
+    }).join('');
+
+    const leftCount = forestState.spots.filter(s => !s.collected).length;
+    return `<div class="scene bg-forest">
+      <div class="critter-bar">
+        <h2 style="margin:0">🌲 ${FOREST_AREAS[forestState.area]}</h2>
+        <button class="btn primary" style="font-size:15px;padding:6px 14px" data-act="carrotSniff">🐢🔍 Carrot Sniff!</button>
+        <button class="btn pink" style="font-size:15px;padding:6px 14px" data-act="nextForest">🗺️ Deeper Trail (${leftCount} left)</button>
+      </div>
+      <div class="forest-map" id="forest-map">
+        ${nodes}
+        <div class="forest-trio" id="forest-trio" style="left:${forestState.trioX}%;top:${forestState.trioY}%">
+          <div class="trio-avatar" style="border-color:${mRobe.color}">
+            <img src="assets/portrait-michelle.jpg" alt="Michelle">
+            <span class="trio-badge">${mHat.em}</span>
+          </div>
+          <div class="trio-avatar" style="border-color:#ff9ec7">
+            <img src="assets/portrait-seoah.jpg" alt="Seo-Ah">
+            <span class="trio-badge">🌸</span>
+          </div>
+          <div class="trio-avatar trio-carrot">
+            <img src="assets/portrait-carrot.jpg" alt="Carrot">
+            <span class="trio-badge">${cAcc.em}</span>
+          </div>
+        </div>
+      </div>
+      <div class="forest-note" id="forest-note">${forestState.note}</div>
+    </div>`;
+  }
+
+  function bindForest() {
+    const map = $('#forest-map');
+    if (!map) return;
+    map.addEventListener('click', e => {
+      if (e.target.closest('[data-act]')) return;
+      const r = map.getBoundingClientRect();
+      forestState.trioX = Math.max(10, Math.min(90, Math.round(((e.clientX - r.left) / r.width) * 100)));
+      forestState.trioY = Math.max(24, Math.min(84, Math.round(((e.clientY - r.top) / r.height) * 100)));
+      const trio = $('#forest-trio');
+      if (trio) { trio.style.left = forestState.trioX + '%'; trio.style.top = forestState.trioY + '%'; }
+      SFX.tap();
+    });
+  }
+
+  function forageSpot(idx, el) {
+    const sp = forestState && forestState.spots[idx];
+    if (!sp || sp.collected) return;
+    sp.collected = true;
+    forestState.trioX = sp.x;
+    forestState.trioY = Math.min(84, sp.y + 6);
+    const it = sp.item;
+    if (it.kind === 'crop') { add(S.crops, it.id, 1); S.stars += 1; }
+    else if (it.kind === 'honey') { S.honey = (S.honey || 0) + 1; S.stars += 1; }
+    else if (it.kind === 'seed') { add(S.seeds, it.id, 1); S.stars += 1; }
+    else if (it.kind === 'gem') { S.stars += 3; }
+    else if (it.kind === 'clover') { S.stars += 2; giveHearts(1); }
+    forestState.note = `${it.em} ${it.label}! — ${it.note}`;
+    SFX.harvest();
+    sparkleAt(el, [it.em, '✨', '⭐'], 10);
+    trackQuest('forage', 1);
+    save();
+    const trio = $('#forest-trio');
+    if (trio) { trio.style.left = forestState.trioX + '%'; trio.style.top = forestState.trioY + '%'; }
+    setTimeout(() => { if (scene === 'forest') render(); }, 280);
+  }
+
+  function carrotSniff() {
+    if (!forestState) spawnForest(0);
+    // Carrot sniffs out 2 fresh hidden treasures in unoccupied spots!
+    const used = new Set(forestState.spots.filter(s => !s.collected).map(s => `${s.x},${s.y}`));
+    const open = FOREST_LANDMARKS.filter(lm => !used.has(`${lm.x},${lm.y}`));
+    const pool = open.length ? open : FOREST_LANDMARKS;
+    let added = 0;
+    for (let k = 0; k < 2 && pool.length; k++) {
+      const lm = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+      const item = FOREST_FINDS[Math.floor(Math.random() * FOREST_FINDS.length)];
+      forestState.spots.push({ ...lm, item, collected: false });
+      added++;
+    }
+    forestState.note = `🐢🔍 Carrot wiggled her nose and sniffed out ${added} new hidden treasures!`;
+    SFX.magic();
+    sparkleAt($('#carrot-buddy'), ['🔍', '✨', '🍄'], 8);
+    render();
   }
 
   // ---------- Witch Bakery (Tarts, Cakes & Cookies) ----------
@@ -1736,10 +1876,12 @@
       : '<span style="font-size:15px;font-weight:bold;color:var(--ink)">Drag items in your room to rearrange! Buy more in Shop 🛍️</span>';
     const cc = S.carrotCare || { fed: false, watered: false, loves: 1 };
 
+    const BIG_PIECES = new Set(['bed', 'couch', 'pond', 'fort']);
     const pieces = (S.roomItems || []).map((it, idx) => {
       const f = FURNITURE[it.id];
       if (!f) return '';
-      return `<button class="room-piece" data-room-idx="${idx}" style="left:${it.x}%;top:${it.y}%" title="Drag to move ${f.name}, or tap to put away">${f.em}</button>`;
+      const cls = BIG_PIECES.has(it.id) ? 'room-piece big-piece' : 'room-piece';
+      return `<button class="${cls}" data-room-idx="${idx}" style="left:${it.x}%;top:${it.y}%" title="Drag to move ${f.name}, or tap to put away">${f.em}</button>`;
     }).join('');
 
     const sleepoverBadge = S.sleepover
@@ -2554,7 +2696,7 @@
   }
 
   // ---------- Rendering ----------
-  const SCENES = { garden: renderGarden, bakery: renderBakery, cauldron: renderCauldron, sky: renderSky, class: renderClass, room: renderRoom, shop: renderShop };
+  const SCENES = { garden: renderGarden, forest: renderForest, bakery: renderBakery, cauldron: renderCauldron, sky: renderSky, class: renderClass, room: renderRoom, shop: renderShop };
   function render() {
     const scroll = $('#scene .scene')?.scrollTop || 0;
     $('#scene').innerHTML = SCENES[scene]();
@@ -2563,6 +2705,7 @@
     updateHud();
     if (scene === 'cauldron') bindCauldron();
     if (scene === 'room') bindRoom();
+    if (scene === 'forest') bindForest();
     if (scene === 'sky') bindSky(); else stopSky();
   }
 
@@ -2626,6 +2769,9 @@
       case 'catchCritter': catchCritter(+i, el); break;
       case 'callCritters': spawnCritters(); SFX.magic(); render(); toast('🦋🐝 Fresh butterflies & bees fluttered into the garden!'); break;
       case 'critterBook': SFX.tap(); critterBook(); break;
+      case 'forage': forageSpot(+i, el); break;
+      case 'carrotSniff': carrotSniff(); break;
+      case 'nextForest': spawnForest((forestState ? forestState.area : 0) + 1); SFX.tap(); render(); break;
       case 'bake': bakeItem(id, el); break;
       case 'pastryAction': SFX.tap(); pastryAction(id); break;
       case 'eatBake':
