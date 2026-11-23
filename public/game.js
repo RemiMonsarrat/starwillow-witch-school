@@ -756,7 +756,32 @@
     toast(`Planted ${CROPS[id].name}! Now tap it to water 💧`);
   }
 
-  // ---------- Cauldron (Finger-Stirring with Live Spoon!) ----------
+  // ---------- Cauldron (Big Wooden Star-Ladle & Easy Finger-Swirling!) ----------
+  const SPOON_SVG = `<svg viewBox="0 0 120 170" width="100%" height="100%">
+    <defs>
+      <linearGradient id="wood" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#d99b52"/>
+        <stop offset="50%" stop-color="#b87333"/>
+        <stop offset="100%" stop-color="#8a4f1d"/>
+      </linearGradient>
+      <radialGradient id="bowlGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fff6b3"/>
+        <stop offset="60%" stop-color="#ff9ee2"/>
+        <stop offset="100%" stop-color="#9e6bff"/>
+      </radialGradient>
+    </defs>
+    <!-- Glowing magic bowl of the ladle -->
+    <ellipse cx="60" cy="138" rx="34" ry="22" fill="url(#wood)" stroke="#5c3010" stroke-width="4"/>
+    <ellipse cx="60" cy="136" rx="26" ry="15" fill="url(#bowlGlow)"/>
+    <!-- Thick carved wooden handle -->
+    <rect x="51" y="24" width="18" height="106" rx="9" fill="url(#wood)" stroke="#5c3010" stroke-width="4"/>
+    <!-- Pink ribbon bow on handle -->
+    <path d="M40 50 Q60 60 80 50 Q60 40 40 50 Z" fill="#ff9ec7" stroke="#7a284f" stroke-width="3"/>
+    <circle cx="60" cy="50" r="6" fill="#ffd966" stroke="#7a284f" stroke-width="2.5"/>
+    <!-- Big golden star topper -->
+    <polygon points="60,2 67,16 82,18 71,28 74,43 60,35 46,43 49,28 38,18 53,16" fill="#ffdf6b" stroke="#8c5319" stroke-width="3.5" stroke-linejoin="round"/>
+  </svg>`;
+
   function renderCauldron() {
     const inPot = pot.map(id => CROPS[id].em).join(' ') || '';
     const ids = Object.keys(CROPS).filter(id => S.crops[id] > 0 || pot.includes(id));
@@ -767,12 +792,12 @@
     const ready = pot.length > 0 && stir >= 100;
     return `<div class="scene bg-cauldron">
       <h2>🧪 Potion Room</h2>
-      <p class="hint">${pot.length ? 'Slide your finger around the cauldron to stir with the magic spoon! 🥄✨' : 'Tap 2 or 3 ingredients below to drop them into the cauldron.'}</p>
+      <p class="hint">${pot.length ? 'Grab the big magic ladle with your finger and swirl the pot! ✨' : 'Tap 2 or 3 ingredients below to drop them into the cauldron.'}</p>
       <div class="cauldron-wrap" id="cauldron">
         <div class="cauldron"></div>
         <div class="brew" id="brew"></div>
         <div class="in-pot" id="in-pot">${inPot}</div>
-        <div id="cauldron-spoon" style="position:absolute;left:50%;top:28%;transform:translate(-50%,-50%);font-size:54px;pointer-events:none;transition:left .04s,top .04s;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))">🥄</div>
+        <div id="cauldron-spoon" class="big-spoon idle-bob">${SPOON_SVG}</div>
       </div>
       <div class="stir-meter"><div id="stir-fill" style="width:${stir}%"></div></div>
       <div class="row">
@@ -786,28 +811,36 @@
   function bindCauldron() {
     const wrap = $('#cauldron');
     if (!wrap) return;
+    let active = false;
     let prevPt = null;
     let bubbleTick = 0;
 
-    const moveSpoon = (clientX, clientY) => {
+    const moveSpoon = (clientX, clientY, isStart) => {
       const r = wrap.getBoundingClientRect();
-      const xPct = Math.max(18, Math.min(82, ((clientX - r.left) / r.width) * 100));
-      const yPct = Math.max(14, Math.min(72, ((clientY - r.top) / r.height) * 100));
+      const xPct = Math.max(15, Math.min(85, ((clientX - r.left) / r.width) * 100));
+      const yPct = Math.max(18, Math.min(78, ((clientY - r.top) / r.height) * 100));
+      const tilt = ((xPct - 50) * 0.55).toFixed(1);
       const sp = $('#cauldron-spoon');
       if (sp) {
+        sp.classList.remove('idle-bob');
         sp.style.left = xPct + '%';
         sp.style.top = yPct + '%';
+        sp.style.transform = `translate(-50%, -58%) rotate(${tilt}deg) scale(1.12)`;
       }
       if (!pot.length) return;
-      if (prevPt) {
+      if (isStart) {
+        // Immediate satisfying swirl nudge as soon as she touches the spoon/pot!
+        addStir(14);
+        sparkle(clientX, clientY, ['🫧', '✨'], 3);
+      } else if (prevPt) {
         const dist = Math.hypot(clientX - prevPt[0], clientY - prevPt[1]);
-        if (dist > 1) {
-          // Smoothly fills 0 -> 100% as Michelle swirls/swishes her finger ~380px total
-          addStir(dist * 0.28);
+        if (dist > 0.5) {
+          // Super responsive: ~180px of swirling fills the whole cauldron!
+          addStir(dist * 0.58);
           bubbleTick += dist;
-          if (bubbleTick > 45) {
+          if (bubbleTick > 28) {
             bubbleTick = 0;
-            sparkle(clientX, clientY, ['🫧', '✨', '💫'], 2);
+            sparkle(clientX, clientY, ['🫧', '✨', '💫', '⭐'], 3);
           }
         }
       }
@@ -816,33 +849,35 @@
 
     wrap.addEventListener('pointerdown', e => {
       e.preventDefault();
-      prevPt = [e.clientX, e.clientY];
+      active = true;
       try { wrap.setPointerCapture(e.pointerId); } catch {}
-      moveSpoon(e.clientX, e.clientY);
+      moveSpoon(e.clientX, e.clientY, true);
     });
     wrap.addEventListener('pointermove', e => {
-      if (!prevPt) return;
+      if (!active) return;
       e.preventDefault();
-      moveSpoon(e.clientX, e.clientY);
+      moveSpoon(e.clientX, e.clientY, false);
     });
     const end = () => {
+      active = false;
       prevPt = null;
-      $('#brew') && $('#brew').classList.remove('stirring');
+      $('#brew')?.classList.remove('stirring');
+      $('#cauldron-spoon')?.classList.add('idle-bob');
     };
     wrap.addEventListener('pointerup', end);
     wrap.addEventListener('pointercancel', end);
 
-    // Extra iOS Safari touch fallback so finger-stirring always works
+    // Extra iOS Safari touch support
     wrap.addEventListener('touchstart', e => {
       if (!e.touches[0]) return;
       e.preventDefault();
-      prevPt = [e.touches[0].clientX, e.touches[0].clientY];
-      moveSpoon(e.touches[0].clientX, e.touches[0].clientY);
+      active = true;
+      moveSpoon(e.touches[0].clientX, e.touches[0].clientY, true);
     }, { passive: false });
     wrap.addEventListener('touchmove', e => {
       if (!e.touches[0]) return;
       e.preventDefault();
-      moveSpoon(e.touches[0].clientX, e.touches[0].clientY);
+      moveSpoon(e.touches[0].clientX, e.touches[0].clientY, false);
     }, { passive: false });
     wrap.addEventListener('touchend', end);
   }

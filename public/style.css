@@ -321,24 +321,49 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 }
 .choice-btn:active { transform: translateY(2px); }
 
-/* Cauldron (sits over the painted golden cauldron in bg-cauldron.jpg) */
-.cauldron-wrap { position: relative; width: min(62vw, 310px); aspect-ratio: 1; margin: 2px 0 8px; touch-action: none; }
+/* Cauldron (large, easy-to-swirl touch zone over the painted golden cauldron in bg-cauldron.jpg) */
+.cauldron-wrap {
+  position: relative; width: min(86vw, 480px); height: clamp(250px, 44vh, 360px);
+  margin: 0 auto 6px; touch-action: none; cursor: grab;
+}
+.cauldron-wrap:active { cursor: grabbing; }
 .cauldron {
-  position: absolute; inset: 10% 6% 4%; border-radius: 50%;
-  background: radial-gradient(circle at 50% 42%, rgba(255, 220, 140, 0.22), rgba(40, 20, 60, 0.08) 70%, transparent);
-  border: 3px dashed rgba(255, 230, 160, 0.45);
+  position: absolute; left: 12%; right: 12%; top: 8%; bottom: 4%; border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, rgba(255, 220, 140, 0.25), rgba(40, 20, 60, 0.08) 70%, transparent);
+  border: 4px dashed rgba(255, 230, 160, 0.65);
+  box-shadow: 0 0 28px rgba(255, 210, 120, 0.35);
 }
 .brew {
-  position: absolute; left: 14%; right: 14%; top: 14%; height: 28%; border-radius: 50%;
-  background: radial-gradient(circle, rgba(165, 255, 220, 0.85), rgba(255, 160, 220, 0.55));
-  box-shadow: 0 0 32px rgba(160, 255, 220, 0.85);
-  transition: background .5s, box-shadow .5s;
+  position: absolute; left: 20%; right: 20%; top: 22%; height: 34%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(165, 255, 220, 0.9), rgba(255, 150, 220, 0.65));
+  box-shadow: 0 0 38px rgba(160, 255, 220, 0.95);
+  transition: background .3s, box-shadow .3s, transform .15s;
 }
-.brew.stirring { animation: swirl 1s linear infinite; }
-@keyframes swirl { to { filter: hue-rotate(360deg); } }
-.in-pot { position: absolute; top: 40%; left: 0; right: 0; text-align: center; font-size: 46px; }
-.stir-meter { width: min(70vw, 360px); height: 18px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden; }
-.stir-meter div { height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), var(--gold)); transition: width .15s; }
+.brew.stirring { animation: swirl .7s linear infinite; transform: scale(1.08); }
+@keyframes swirl { to { filter: hue-rotate(360deg); transform: scale(1.1) rotate(360deg); } }
+.in-pot {
+  position: absolute; top: 38%; left: 0; right: 0; text-align: center;
+  font-size: 54px; pointer-events: none; filter: drop-shadow(0 4px 8px rgba(0,0,0,.45));
+}
+.big-spoon {
+  position: absolute; left: 50%; top: 34%; width: 130px; height: 170px;
+  transform: translate(-50%, -58%) rotate(-12deg);
+  pointer-events: none; z-index: 4;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.5));
+  transition: left .04s linear, top .04s linear, transform .08s ease-out;
+}
+.big-spoon.idle-bob {
+  animation: spoonBob 1.8s ease-in-out infinite;
+}
+@keyframes spoonBob {
+  50% { transform: translate(-50%, -64%) rotate(10deg) scale(1.05); }
+}
+.stir-meter {
+  width: min(80vw, 420px); height: 24px; border-radius: 999px;
+  background: rgba(35, 20, 60, 0.72); border: 3px solid rgba(255, 220, 130, 0.8);
+  overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,.35);
+}
+.stir-meter div { height: 100%; width: 0; background: linear-gradient(90deg, #ff85c0, #ffd966, #7ef0c2); transition: width .1s; }
 .ingredients { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 14px; }
 .ing {
   min-width: 96px; padding: 10px 12px; border-radius: 20px; background: var(--cream);
