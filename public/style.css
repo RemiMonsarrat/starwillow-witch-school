@@ -570,6 +570,28 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action
 .outfit-card .nm { font-size: 14px; font-weight: bold; }
 .outfit-card .btn { font-size: 14px; padding: 5px 12px; }
 
+/* Michelle's Idea Box / Wish Jar */
+.idea-cats { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 10px; }
+.idea-cat {
+  background: #fff; border: 2px solid #dfd2f2; border-radius: 999px;
+  padding: 5px 12px; font-size: 14px; font-weight: bold; color: var(--ink);
+}
+.idea-cat.sel { background: linear-gradient(#ffd977, #ffb347); border-color: #c77c1e; color: #5a3300; }
+.idea-quick { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 8px 0 10px; }
+.idea-chip {
+  background: #fff4fa; border: 2px solid #ffb8d9; border-radius: 14px;
+  padding: 5px 10px; font-size: 13px; font-weight: bold; color: #6b1d47;
+}
+.idea-chip:active { transform: scale(.95); }
+.idea-input {
+  width: 100%; min-height: 76px; padding: 10px 12px; border-radius: 16px;
+  border: 3px solid #cbb4eb; background: #fff; color: var(--ink);
+  font: inherit; font-size: 17px; resize: vertical;
+  -webkit-user-select: text; user-select: text; touch-action: manipulation;
+}
+.idea-input:focus { outline: none; border-color: var(--plum); }
+.wish-done { opacity: 0.7; background: #f2fff4 !important; }
+
 /* FX */
 #fx { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
 .spark { position: absolute; font-size: 30px; animation: rise 1.4s ease-out forwards; }

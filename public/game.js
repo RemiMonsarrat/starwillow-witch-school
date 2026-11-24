@@ -327,6 +327,7 @@
       daily: { talked: false, gifted: false, carrot: false, wateredCarrot: false, word: 0 },
       quests: null,
       wardrobe: { ...DEFAULT_WARDROBE, owned: [...DEFAULT_WARDROBE.owned] },
+      wishes: [],
       sound: true,
       music: true,
       song: 0,
@@ -409,6 +410,7 @@
       s.customMixes = Array.isArray(s.customMixes) ? s.customMixes : [];
       s.wardrobe = Object.assign({ ...DEFAULT_WARDROBE, owned: [...DEFAULT_WARDROBE.owned] }, s.wardrobe || {});
       if (!Array.isArray(s.wardrobe.owned)) s.wardrobe.owned = [...DEFAULT_WARDROBE.owned];
+      if (!Array.isArray(s.wishes)) s.wishes = [];
       s.carrotCare = Object.assign({ fed: false, watered: false, loves: 1 }, s.carrotCare || {});
       if (typeof s.honey !== 'number') s.honey = 1;
       if (typeof s.music !== 'boolean') s.music = true;
@@ -2673,6 +2675,92 @@
     save(); render(); wardrobeModal(cat);
   }
 
+  // ---------- Michelle's Idea Box / Wish Jar (Feature Propositions) ----------
+  const IDEA_CATS = ['🐾 Pets', '🧪 Potions', '👗 Outfits', '🧁 Bakery', '🗺️ Places', '🎮 Games'];
+  const IDEA_PROMPTS = [
+    '🐼 Add a baby panda or bunny friend!',
+    '🏰 Explore a Witch Castle library',
+    '🎂 Bake chocolate & rainbow cupcakes',
+    '👗 Add sparkly wings and witch boots',
+    '🌈 New potion that rains shooting stars',
+    '🏡 Add a treehouse for Carrot & Seo-Ah',
+  ];
+  let ideaCat = IDEA_CATS[0];
+  let ideaDraft = '';
+
+  const esc = str => String(str || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+  function ideasModal() {
+    const wishes = S.wishes || [];
+    const cats = IDEA_CATS.map(c =>
+      `<button class="idea-cat ${ideaCat === c ? 'sel' : ''}" data-act="ideaCat" data-id="${esc(c)}">${c}</button>`
+    ).join('');
+    const chips = IDEA_PROMPTS.map(p =>
+      `<button class="idea-chip" data-act="ideaChip" data-id="${esc(p)}">${p}</button>`
+    ).join('');
+
+    const list = wishes.length
+      ? wishes.map((w, idx) => `<div class="list-item ${w.done ? 'wish-done' : ''}">
+          <span class="em">${w.cat.split(' ')[0] || '💡'}</span>
+          <div class="grow">
+            <b>${esc(w.text)}</b>
+            <small>${esc(w.cat)} · Day ${w.day}${w.done ? ' · ✅ Added to game!' : ' · 🌟 Wished!'}</small>
+          </div>
+          <button class="btn" data-act="toggleWish" data-i="${idx}" title="Mark built">${w.done ? '↩️' : '✅'}</button>
+          <button class="btn" data-act="deleteWish" data-i="${idx}" title="Remove">🗑️</button>
+        </div>`).join('')
+      : '<div class="empty">No wishes yet! Tap an idea bubble above or write your own dream feature below! ✨</div>';
+
+    openModal(`<h3>💡 Michelle's Idea Box</h3>
+      <p style="text-align:center;font-size:15px;margin:0 0 8px">What should we add next to Witch School, Michelle? Tell Seo-Ah &amp; Papa! 🌟</p>
+      <div class="idea-cats">${cats}</div>
+      <div class="idea-quick">${chips}</div>
+      <textarea id="idea-text" class="idea-input" placeholder="Write or dictate your idea here… (example: Let Carrot ride a tiny skateboard! 🐢🛹)">${esc(ideaDraft)}</textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn primary" data-act="sendWish">✨ Put Wish in Jar!</button>
+        ${wishes.length ? '<button class="btn pink" data-act="copyWishes">📋 Copy Wishes for Amp</button>' : ''}
+      </div>
+      <h4 style="margin:14px 0 8px;text-align:center">📜 Michelle's Wish List (${wishes.length})</h4>
+      ${list}
+      <div class="row"><button class="btn" data-act="close">Close</button></div>`);
+
+    const box = $('#idea-text');
+    if (box) box.addEventListener('input', () => { ideaDraft = box.value; });
+  }
+
+  function sendWish() {
+    const box = $('#idea-text');
+    const txt = (box ? box.value : ideaDraft).trim();
+    if (!txt) {
+      toast('Write or tap an idea first! 💡');
+      return;
+    }
+    S.wishes = S.wishes || [];
+    S.wishes.unshift({ cat: ideaCat, text: txt, day: S.day, done: false, at: Date.now() });
+    ideaDraft = '';
+    S.stars += 2;
+    SFX.magic();
+    sparkle(window.innerWidth / 2, window.innerHeight / 2, ['💡', '🌟', '✨', '💖'], 14);
+    save(); render(); ideasModal();
+    toast('🌟 Wish saved in your Idea Box! (+2 ⭐ for creative thinking!)');
+  }
+
+  function copyWishes() {
+    const wishes = (S.wishes || []).filter(w => !w.done);
+    const list = (wishes.length ? wishes : (S.wishes || []));
+    if (!list.length) return;
+    const msg = 'Michelle asked for these new features in Starwillow Witch School:\n' +
+      list.map((w, i) => `${i + 1}. [${w.cat}] ${w.text}`).join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(msg).then(
+        () => toast('📋 Copied! Paste it right into our Amp chat!'),
+        () => openModal(`<h3>📋 Copy Michelle's Wishes</h3><textarea class="idea-input" readonly>${esc(msg)}</textarea><div class="row"><button class="btn" data-act="ideas">◀ Back</button></div>`)
+      );
+    } else {
+      openModal(`<h3>📋 Copy Michelle's Wishes</h3><textarea class="idea-input" readonly>${esc(msg)}</textarea><div class="row"><button class="btn" data-act="ideas">◀ Back</button></div>`);
+    }
+  }
+
   function musicModal() {
     const songRows = SONGS.map((s, idx) => `<div class="list-item">
       <span class="em">${S.song === idx && S.music ? '🎶' : '🎵'}</span>
@@ -2690,6 +2778,7 @@
     openModal(`<h3>⚙️ Settings</h3>
       <div class="list-item"><span class="em">${S.music ? '🎵' : '🔇'}</span><div class="grow"><b>Music (${SONGS[S.song || 0].name})</b><small>Cozy background melody</small></div><button class="btn" data-act="toggleMusic">${S.music ? 'Turn off' : 'Turn on'}</button></div>
       <div class="list-item"><span class="em">${S.sound ? '🔊' : '🔇'}</span><div class="grow"><b>Sound Effects</b><small>Cute chimes and sparkles</small></div><button class="btn" data-act="toggleSound">${S.sound ? 'Turn off' : 'Turn on'}</button></div>
+      <div class="list-item"><span class="em">💡</span><div class="grow"><b>Michelle's Idea Box</b><small>Propose new pets, outfits, or games to add next!</small></div><button class="btn pink" data-act="ideas">Open</button></div>
       <div class="list-item"><span class="em">🏠</span><div class="grow"><b>Play on the iPad Home Screen</b><small>In Safari, tap Share ⬆️ then "Add to Home Screen". Open the Home Screen icon once while online so it saves everything offline!</small></div></div>
       <div class="list-item"><span class="em">🔄</span><div class="grow"><b>Check for Game Updates</b><small>Downloads newest rooms &amp; features when online</small></div><button class="btn primary" data-act="updateApp">Update</button></div>
       <div class="list-item"><span class="em">🧹</span><div class="grow"><b>Start over</b><small>Erases all progress</small></div><button class="btn" data-act="reset">Start over</button></div>
@@ -2843,6 +2932,17 @@
       case 'wardrobe': SFX.tap(); wardrobeModal(); break;
       case 'wardrobeTab': SFX.tap(); wardrobeModal(id); break;
       case 'pickOutfit': pickOutfit(kind, id, el); break;
+      case 'ideas': SFX.tap(); ideasModal(); break;
+      case 'ideaCat': ideaCat = id || IDEA_CATS[0]; SFX.tap(); ideasModal(); break;
+      case 'ideaChip': ideaDraft = id || ''; SFX.tap(); ideasModal(); break;
+      case 'sendWish': sendWish(); break;
+      case 'toggleWish':
+        if (S.wishes && S.wishes[+i]) { S.wishes[+i].done = !S.wishes[+i].done; SFX.tap(); save(); ideasModal(); }
+        break;
+      case 'deleteWish':
+        if (S.wishes && S.wishes[+i]) { S.wishes.splice(+i, 1); SFX.tap(); save(); ideasModal(); }
+        break;
+      case 'copyWishes': copyWishes(); break;
       case 'claimQuest': claimQuest(+i); break;
       case 'claimQuestBonus': claimQuestBonus(); break;
       case 'playSudoku': SFX.tap(); startSudoku(); break;
