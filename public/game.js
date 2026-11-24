@@ -2690,7 +2690,8 @@
     openModal(`<h3>⚙️ Settings</h3>
       <div class="list-item"><span class="em">${S.music ? '🎵' : '🔇'}</span><div class="grow"><b>Music (${SONGS[S.song || 0].name})</b><small>Cozy background melody</small></div><button class="btn" data-act="toggleMusic">${S.music ? 'Turn off' : 'Turn on'}</button></div>
       <div class="list-item"><span class="em">${S.sound ? '🔊' : '🔇'}</span><div class="grow"><b>Sound Effects</b><small>Cute chimes and sparkles</small></div><button class="btn" data-act="toggleSound">${S.sound ? 'Turn off' : 'Turn on'}</button></div>
-      <div class="list-item"><span class="em">🏠</span><div class="grow"><b>Play on the iPad Home Screen</b><small>In Safari, tap Share ⬆️ then "Add to Home Screen". Your progress saves on this iPad.</small></div></div>
+      <div class="list-item"><span class="em">🏠</span><div class="grow"><b>Play on the iPad Home Screen</b><small>In Safari, tap Share ⬆️ then "Add to Home Screen". Open the Home Screen icon once while online so it saves everything offline!</small></div></div>
+      <div class="list-item"><span class="em">🔄</span><div class="grow"><b>Check for Game Updates</b><small>Downloads newest rooms &amp; features when online</small></div><button class="btn primary" data-act="updateApp">Update</button></div>
       <div class="list-item"><span class="em">🧹</span><div class="grow"><b>Start over</b><small>Erases all progress</small></div><button class="btn" data-act="reset">Start over</button></div>
       <div class="row"><button class="btn" data-act="close">Close</button></div>`);
   }
@@ -2927,6 +2928,16 @@
       case 'carrot': carrotTap(); break;
       case 'feedCarrot': feedCarrot(); break;
       case 'toggleSound': S.sound = !S.sound; save(); settings(); break;
+      case 'updateApp':
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations()
+            .then(rs => Promise.all(rs.map(r => r.update())))
+            .then(() => { toast('🔄 Checking for updates… reloading!'); setTimeout(() => location.reload(), 600); })
+            .catch(() => toast('Could not reach server right now — offline mode active!'));
+        } else {
+          location.reload();
+        }
+        break;
       case 'reset':
         if (el.dataset.confirm) { stopMusic(); localStorage.removeItem(SAVE_KEY); S = newState(); pot = []; stir = 0; closeModal(); $('#game').classList.add('hidden'); $('#title').classList.remove('hidden'); }
         else { el.dataset.confirm = '1'; el.textContent = 'Tap again to erase'; }
