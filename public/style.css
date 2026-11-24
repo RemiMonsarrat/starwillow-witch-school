@@ -606,9 +606,86 @@ body.float #scene { animation: floaty 3s ease-in-out; }
 body.giggle #scene { animation: wiggle .3s linear 8; }
 @keyframes wiggle { 25% { transform: rotate(1.2deg); } 75% { transform: rotate(-1.2deg); } }
 
-@media (max-width: 600px) {
-  .hud-name, .nav button span { display: none; }
-  .plots { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .plot { font-size: 46px; }
-  .npc .face { width: 104px; height: 104px; font-size: 64px; }
+@media (max-width: 740px) {
+  .hud {
+    flex-wrap: wrap; gap: 6px; padding: calc(6px + var(--safe-top)) 10px 6px;
+  }
+  .hud-left { width: 100%; justify-content: space-between; gap: 8px; }
+  .avatar-wrap { width: 38px; height: 38px; }
+  .hud-avatar { width: 38px; height: 38px; border-width: 2px; }
+  .hud-name { font-size: 17px; margin-right: auto; }
+  .pill { padding: 4px 10px; font-size: 15px; white-space: nowrap; }
+  .hud-right { width: 100%; justify-content: space-between; gap: 4px; }
+  .icon-btn { flex: 1; max-width: 48px; width: auto; height: 40px; font-size: 21px; border-radius: 12px; }
+
+  .nav { gap: 2px; padding: 6px 4px calc(6px + var(--safe-bottom)); }
+  .nav button { min-width: 0; font-size: 21px; padding: 5px 1px; border-radius: 12px; }
+  .nav button span { display: block; font-size: 10px; margin-top: 1px; }
+
+  #carrot-buddy { width: 58px; height: 58px; right: 10px; bottom: calc(70px + var(--safe-bottom)); border-width: 3px; }
+  .carrot-badge { font-size: 18px; top: -4px; right: -2px; }
+
+  .scene { padding: 10px 10px 92px; }
+  .scene h2 { font-size: 20px !important; padding: 4px 12px !important; }
+  .critter-bar { gap: 6px; }
+  .critter-pill { font-size: 13px; padding: 4px 10px; }
+
+  /* Keep all 6 garden mounds cleanly inside narrow portrait screens */
+  .garden-meadow { min-height: 360px; }
+  .mound {
+    width: 126px; height: 84px; font-size: 46px;
+    background: radial-gradient(ellipse at center, rgba(110, 68, 38, 0.85) 0%, rgba(138, 90, 60, 0.72) 66%, rgba(138, 90, 60, 0) 74%);
+  }
+  .mound[data-i="0"] { left: 26% !important; top: 38% !important; }
+  .mound[data-i="1"] { left: 74% !important; top: 38% !important; }
+  .mound[data-i="2"] { left: 26% !important; top: 61% !important; }
+  .mound[data-i="3"] { left: 74% !important; top: 61% !important; }
+  .mound[data-i="4"] { left: 26% !important; top: 84% !important; }
+  .mound[data-i="5"] { left: 74% !important; top: 84% !important; }
+
+  /* Forest nodes & note clear of Carrot button on phone */
+  .forage-node { width: 68px; height: 68px; font-size: 32px; }
+  .forage-node[data-i="0"] { left: 19% !important; }
+  .forage-node[data-i="1"] { left: 24% !important; }
+  .forage-node[data-i="5"] { left: 76% !important; }
+  .forage-node[data-i="6"] { left: 72% !important; top: 72% !important; }
+  .forest-note { font-size: 13px; padding: 6px 12px; margin-right: 62px; }
+
+  /* Room on phone: dock Carrot's house cleanly below stage so it never covers the bed */
+  .room-stage { min-height: 230px; }
+  .room-piece { font-size: 56px; }
+  .room-piece.big-piece { font-size: 86px; }
+  .carrot-corner {
+    position: static; width: 100%; max-width: none; margin-top: auto;
+    padding: 8px 10px;
+  }
+  .room-stage { display: flex; flex-direction: column; justify-content: flex-end; }
+  .room-bottom-bar { padding-right: 64px; }
+
+  /* Potions, Bakery, Shop, Class, Broom Race, Dialog & Modals on phone */
+  .cauldron-wrap { width: min(84vw, 300px); height: 210px; }
+  .big-spoon { width: 96px; height: 126px; }
+  .ing { min-width: 78px; padding: 8px; font-size: 32px; }
+  .bakery-grid, .shop-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .npc .face { width: 88px; height: 88px; font-size: 54px; }
+  .sky-stage { height: 260px; }
+  .sky-bubble { font-size: 13px; padding: 5px 10px; right: 12px; }
+
+  .modal { padding: 10px; }
+  .modal-card { padding: 14px 12px; border-radius: 20px; max-height: 88vh; }
+  .modal-card h3 { font-size: 21px; }
+  .dialog { padding: 10px 10px calc(76px + var(--safe-bottom)); }
+  .dialog-avatar { width: 64px; height: 64px; font-size: 42px; }
+  .dialog-text { font-size: 17px; }
+  .choice-btn { font-size: 15px; padding: 7px 12px; }
+
+  .wardrobe-stage { gap: 10px; padding: 10px; }
+  .wardrobe-stage svg { width: 96px; height: 112px; }
+  .outfit-grid { grid-template-columns: repeat(2, 1fr); }
+  .mem-grid { grid-template-columns: repeat(4, 62px); gap: 7px; }
+  .mem-card { width: 62px; height: 68px; font-size: 30px; }
+  .cw-grid { gap: 3px; }
+  .cw-cell, .cw-block { width: 38px; height: 38px; font-size: 19px; }
+  .sudo-grid { grid-template-columns: repeat(4, 52px); }
+  .sudo-cell { width: 52px; height: 52px; font-size: 22px; }
 }

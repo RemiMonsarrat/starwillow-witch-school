@@ -1,7 +1,7 @@
 // Cache-first offline service worker for iPad Home Screen play.
 // Once cached, the game always launches straight from the iPad even if the temporary
 // orb link goes to sleep or asks to sign in to Amp.
-const CACHE = 'starwillow-v17';
+const CACHE = 'starwillow-v18';
 const FILES = [
   './', './index.html', './style.css', './game.js', './manifest.webmanifest',
   './assets/banner.jpg', './assets/bg-room.jpg', './assets/bg-garden.jpg', './assets/bg-bakery.jpg',
