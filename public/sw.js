@@ -1,13 +1,13 @@
 // Cache-first offline service worker for iPad Home Screen play.
 // Once cached, the game always launches straight from the iPad even if the temporary
 // orb link goes to sleep or asks to sign in to Amp.
-const CACHE = 'starwillow-v14';
+const CACHE = 'starwillow-v15';
 const FILES = [
-  '/', '/index.html', '/style.css', '/game.js', '/manifest.webmanifest',
-  '/assets/banner.jpg', '/assets/bg-room.jpg', '/assets/bg-garden.jpg', '/assets/bg-bakery.jpg',
-  '/assets/bg-cauldron.jpg', '/assets/bg-class.jpg', '/assets/bg-shop.jpg', '/assets/bg-forest.jpg',
-  '/assets/icon-512.png', '/assets/apple-touch-icon.png',
-  '/assets/portrait-michelle.jpg', '/assets/portrait-seoah.jpg', '/assets/portrait-carrot.jpg',
+  './', './index.html', './style.css', './game.js', './manifest.webmanifest',
+  './assets/banner.jpg', './assets/bg-room.jpg', './assets/bg-garden.jpg', './assets/bg-bakery.jpg',
+  './assets/bg-cauldron.jpg', './assets/bg-class.jpg', './assets/bg-shop.jpg', './assets/bg-forest.jpg',
+  './assets/icon-512.png', './assets/apple-touch-icon.png',
+  './assets/portrait-michelle.jpg', './assets/portrait-seoah.jpg', './assets/portrait-carrot.jpg',
 ];
 
 self.addEventListener('install', e => {
@@ -30,7 +30,7 @@ async function isRealGameResponse(req, res) {
   if (!res || !res.ok || res.type === 'opaqueredirect' || res.redirected) return false;
   const ct = (res.headers.get('content-type') || '').toLowerCase();
   const path = new URL(req.url).pathname;
-  if (path === '/' || path === '/index.html' || req.mode === 'navigate') {
+  if (path.endsWith('/') || path.endsWith('/index.html') || req.mode === 'navigate') {
     if (!ct.includes('text/html')) return false;
     const txt = await res.clone().text();
     // Never cache or serve an Amp sign-in or "Orb sleeping" page over the real game!
@@ -49,7 +49,7 @@ self.addEventListener('fetch', e => {
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const cached = await cache.match(e.request, { ignoreSearch: true })
-      || (e.request.mode === 'navigate' ? await cache.match('/index.html') : null);
+      || (e.request.mode === 'navigate' ? await cache.match('./index.html') : null);
 
     // Background refresh when online; only updates cache if it's genuinely the game server (not an auth/sleep page)
     const refresh = fetch(e.request, { cache: 'no-store', redirect: 'manual' })
@@ -69,6 +69,6 @@ self.addEventListener('fetch', e => {
 
     const fresh = await refresh;
     if (fresh) return fresh;
-    return (await cache.match('/index.html')) || Response.error();
+    return (await cache.match('./index.html')) || Response.error();
   })());
 });

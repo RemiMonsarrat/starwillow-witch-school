@@ -2964,7 +2964,7 @@
   });
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').then(r => r.update()).catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then(r => r.update()).catch(() => {});
   }
 
   window.__starwillow = { get state() { return S; }, get musicPlaying() { return !!musicTimer; } }; // for testing

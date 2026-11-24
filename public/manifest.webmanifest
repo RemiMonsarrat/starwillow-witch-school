@@ -1,7 +1,8 @@
 {
   "name": "Starwillow Witch School",
   "short_name": "Witch School",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#2e2150",
   "theme_color": "#5b3f8c",
