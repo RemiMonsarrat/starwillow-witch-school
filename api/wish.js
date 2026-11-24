@@ -58,7 +58,7 @@ export default async function handler(req, res) {
   };
 
   try {
-    const ghRes = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
+    let ghRes = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
       method: 'POST',
       headers: {
         'Accept': 'application/vnd.github+json',
@@ -68,6 +68,20 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify(issuePayload),
     });
+
+    if (ghRes.status === 403 || ghRes.status === 422) {
+      const { labels: _drop, ...noLabels } = issuePayload;
+      ghRes = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'starwillow-wish-receiver',
+        },
+        body: JSON.stringify(noLabels),
+      });
+    }
 
     const data = await ghRes.json().catch(() => ({}));
     if (!ghRes.ok) {
