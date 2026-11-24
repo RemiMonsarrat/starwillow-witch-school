@@ -19,8 +19,9 @@
     sleepy:  { name: 'Sleepy Potion',        em: '😴', ings: ['fairyblossom', 'glowshroom'],              sell: 8,  effect: 'sleep',   desc: 'A cozy nap that skips to tomorrow.' },
     speedy:  { name: 'Speedy Turtle Potion', em: '🐢', ings: ['carrot', 'glowshroom'],                    sell: 9,  effect: 'zoom',    desc: 'Carrot zooms around and waters every plant!' },
     grow:    { name: 'Growth Potion',        em: '🌱', ings: ['carrot', 'pumpkin'],                       sell: 10, effect: 'grow',    desc: 'Every planted seed grows up instantly.' },
-    rainbow: { name: 'Rainbow Potion',       em: '🌈', ings: ['fairyblossom', 'moonberry', 'starflower'], sell: 12, effect: 'rainbow', desc: 'Paints the whole sky with rainbows.' },
-    friend:  { name: 'Friendship Potion',    em: '💖', ings: ['moonberry', 'pumpkin', 'starflower'],      sell: 14, effect: 'friend',  desc: 'Seo-Ah\'s favorite! A warm, happy feeling.' },
+    rainbow:      { name: 'Rainbow Potion',       em: '🌈', ings: ['fairyblossom', 'moonberry', 'starflower'], sell: 12, effect: 'rainbow',   desc: 'Paints the whole sky with rainbows.' },
+    friend:       { name: 'Friendship Potion',    em: '💖', ings: ['moonberry', 'pumpkin', 'starflower'],      sell: 14, effect: 'friend',    desc: 'Seo-Ah\'s favorite! A warm, happy feeling.' },
+    shootingstar: { name: 'Shooting Star Potion', em: '🌠', ings: ['starflower', 'moonberry'],                 sell: 10, effect: 'starburst', desc: 'Rains glowing shooting stars across the sky!' },
   };
   const SOUP = { name: 'Bubbly Mystery Soup', em: '🥣', sell: 1 };
   const recipeKey = ings => [...ings].sort().join('+');
@@ -139,12 +140,19 @@
       butterfly: { name: 'Butterfly Friend',   em: '🦋', price: 6 },
       crown:     { name: 'Turtle Queen Crown', em: '👑', price: 8 },
     },
+    extras: {
+      none:  { name: 'No Extras',      em: '✨', price: 0 },
+      wings: { name: 'Sparkly Wings',  em: '🧚', price: 6 },
+      boots: { name: 'Witch Boots',    em: '👢', price: 5 },
+      wand:  { name: 'Starlight Wand', em: '🪄', price: 5 },
+    },
   };
   const DEFAULT_WARDROBE = {
-    owned: ['hats:beige', 'hats:plum', 'robes:beige', 'robes:plum', 'carrot:bow', 'carrot:flower'],
+    owned: ['hats:beige', 'hats:plum', 'robes:beige', 'robes:plum', 'carrot:bow', 'carrot:flower', 'extras:none'],
     hats: 'beige',
     robes: 'beige',
     carrot: 'bow',
+    extras: 'none',
   };
 
   const FURNITURE = {
@@ -153,8 +161,11 @@
     candle:   { name: 'Candle',            em: '🕯️', price: 5 },
     bow:      { name: 'Big Bow',           em: '🎀', price: 4 },
     cake:     { name: 'Strawberry Cake',   em: '🍰', price: 7 },
-    books:    { name: 'Spell Books',       em: '📚', price: 8 },
+    books:    { name: 'Castle Library',    em: '🏰', price: 8 },
     teddy:    { name: 'Teddy Bear',        em: '🧸', price: 10 },
+    panda:    { name: 'Baby Panda Friend', em: '🐼', price: 9 },
+    bunny:    { name: 'Fluffy Bunny',      em: '🐰', price: 8 },
+    treehouse:{ name: 'Bestie Treehouse',  em: '🌳', price: 12 },
     mirror:   { name: 'Magic Mirror',      em: '🪞', price: 12 },
     globe:    { name: 'Crystal Ball',      em: '🔮', price: 12 },
     moon:     { name: 'Moon Lamp',         em: '🌙', price: 14 },
@@ -271,6 +282,8 @@
     pumpkin_tart:    { name: 'Pumpkin Spice Witch Tart',  em: '🥧', kind: 'Tart',    cost: { pumpkin: 1 },                  sell: 9,  desc: 'Cozy autumn tart dusted with cinnamon stars.' },
     carrot_cake:     { name: 'Carrot\'s Carrot Cake',     em: '🎂', kind: 'Cake',    cost: { carrot: 1 },                   sell: 8,  desc: 'Topped with cream frosting — Carrot\'s favorite!' },
     strawberry_cake: { name: 'Seo-Ah\'s Berry Cloud Cake',em: '🍰', kind: 'Cake',    cost: { fairyblossom: 1, moonberry: 1 }, sell: 11, desc: 'Fluffy two-tier cake — Seo-Ah loves it!' },
+    choco_cupcake:   { name: 'Chocolate Witch Cupcake',   em: '🧁', kind: 'Cupcake', cost: { honey: 1 },                    sell: 6,  desc: 'Rich chocolate cupcake with star sprinkles!' },
+    rainbow_cupcake: { name: 'Rainbow Star Cupcake',      em: '🧁', kind: 'Cupcake', cost: { fairyblossom: 1, starflower: 1 }, sell: 10, desc: 'Swirled with pastel rainbow frosting!' },
   };
 
   const LESSONS = [
@@ -1878,7 +1891,7 @@
       : '<span style="font-size:15px;font-weight:bold;color:var(--ink)">Drag items in your room to rearrange! Buy more in Shop 🛍️</span>';
     const cc = S.carrotCare || { fed: false, watered: false, loves: 1 };
 
-    const BIG_PIECES = new Set(['bed', 'couch', 'pond', 'fort']);
+    const BIG_PIECES = new Set(['bed', 'couch', 'pond', 'fort', 'treehouse', 'books']);
     const pieces = (S.roomItems || []).map((it, idx) => {
       const f = FURNITURE[it.id];
       if (!f) return '';
@@ -2588,7 +2601,17 @@
          <path d="M40 36 Q64 42 88 36" fill="none" stroke="${hat.trim}" stroke-width="5" stroke-linecap="round"/>
          <polygon points="88,20 90,26 96,27 91,31 92,37 88,34 84,37 85,31 80,27 86,26" fill="#ffdf6b" stroke="#8c5319" stroke-width="1.5"/>`;
 
+    const extra = WARDROBE.extras[w.extras || 'none'] || WARDROBE.extras.none;
+    const wingsSvg = w.extras === 'wings'
+      ? `<ellipse cx="26" cy="96" rx="18" ry="11" transform="rotate(-24 26 96)" fill="#ffd1f3" opacity="0.88" stroke="#e879c4" stroke-width="2"/>
+         <ellipse cx="102" cy="96" rx="18" ry="11" transform="rotate(24 102 96)" fill="#ffd1f3" opacity="0.88" stroke="#e879c4" stroke-width="2"/>`
+      : '';
+    const extraBadge = w.extras && w.extras !== 'none'
+      ? `<text x="104" y="132" font-size="24">${extra.em}</text>`
+      : '';
+
     const michelleSvg = `<svg viewBox="0 0 128 148" width="122" height="140" aria-label="Michelle dress-up preview">
+      ${wingsSvg}
       <!-- Braided black hair -->
       <ellipse cx="44" cy="84" rx="11" ry="26" fill="#1b1821" stroke="#0c0a0f" stroke-width="2"/>
       <ellipse cx="84" cy="84" rx="11" ry="26" fill="#1b1821" stroke="#0c0a0f" stroke-width="2"/>
@@ -2606,6 +2629,7 @@
       <circle cx="77" cy="69" r="3.5" fill="#ff9eb8" opacity="0.7"/>
       <path d="M59 71 Q64 76 69 71" fill="none" stroke="#a64b4b" stroke-width="2.5" stroke-linecap="round"/>
       ${hatSvg}
+      ${extraBadge}
     </svg>`;
 
     const carrotSvg = `<div style="text-align:center">
@@ -2649,6 +2673,7 @@
       <div class="wardrobe-tabs">
         <button class="btn ${wardrobeTab === 'hats' ? 'sel' : ''}" data-act="wardrobeTab" data-id="hats">👒 Hats</button>
         <button class="btn ${wardrobeTab === 'robes' ? 'sel' : ''}" data-act="wardrobeTab" data-id="robes">👘 Robes</button>
+        <button class="btn ${wardrobeTab === 'extras' ? 'sel' : ''}" data-act="wardrobeTab" data-id="extras">🧚 Wings &amp; Boots</button>
         <button class="btn ${wardrobeTab === 'carrot' ? 'sel' : ''}" data-act="wardrobeTab" data-id="carrot">🐢 Carrot's Style</button>
       </div>
       <div class="outfit-grid">${cards}</div>
@@ -2678,12 +2703,12 @@
   // ---------- Michelle's Idea Box / Wish Jar (Feature Propositions) ----------
   const IDEA_CATS = ['🐾 Pets', '🧪 Potions', '👗 Outfits', '🧁 Bakery', '🗺️ Places', '🎮 Games'];
   const IDEA_PROMPTS = [
-    '🐼 Add a baby panda or bunny friend!',
-    '🏰 Explore a Witch Castle library',
-    '🎂 Bake chocolate & rainbow cupcakes',
-    '👗 Add sparkly wings and witch boots',
-    '🌈 New potion that rains shooting stars',
-    '🏡 Add a treehouse for Carrot & Seo-Ah',
+    '🐬 Swim with a baby dolphin in a mermaid lagoon',
+    '🎆 Watch a fireworks festival with Seo-Ah',
+    '🍓 Have a strawberry picnic with Carrot',
+    '🎹 Play a magical piano or xylophone',
+    '🦄 Ride a pastel unicorn through the clouds',
+    '📸 Take cute witch bestie photos together',
   ];
   let ideaCat = IDEA_CATS[0];
   let ideaDraft = '';
