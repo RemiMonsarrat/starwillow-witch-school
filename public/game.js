@@ -2702,6 +2702,9 @@
 
   // ---------- Michelle's Idea Box / Wish Jar (Feature Propositions) ----------
   const IDEA_CATS = ['🐾 Pets', '🧪 Potions', '👗 Outfits', '🧁 Bakery', '🗺️ Places', '🎮 Games'];
+  const WISH_API_URL = location.hostname.endsWith('.vercel.app')
+    ? '/api/wish'
+    : 'https://starwillow-witch-school.vercel.app/api/wish';
   const IDEA_PROMPTS = [
     '🐬 Swim with a baby dolphin in a mermaid lagoon',
     '🎆 Watch a fireworks festival with Seo-Ah',
@@ -2729,13 +2732,14 @@
           <span class="em">${w.cat.split(' ')[0] || '💡'}</span>
           <div class="grow">
             <b>${esc(w.text)}</b>
-            <small>${esc(w.cat)} · Day ${w.day}${w.done ? ' · ✅ Added to game!' : ' · 🌟 Wished!'}</small>
+            <small>${esc(w.cat)} · Day ${w.day}${w.done ? ' · ✅ Added!' : w.synced ? ' · ☁️ Sent to Papa!' : ' · 📱 Saved on iPad'}</small>
           </div>
           <button class="btn" data-act="toggleWish" data-i="${idx}" title="Mark built">${w.done ? '↩️' : '✅'}</button>
           <button class="btn" data-act="deleteWish" data-i="${idx}" title="Remove">🗑️</button>
         </div>`).join('')
       : '<div class="empty">No wishes yet! Tap an idea bubble above or write your own dream feature below! ✨</div>';
 
+    const hasUnsynced = wishes.some(w => !w.synced && !w.done);
     openModal(`<h3>💡 Michelle's Idea Box</h3>
       <p style="text-align:center;font-size:15px;margin:0 0 8px">What should we add next to Witch School, Michelle? Tell Seo-Ah &amp; Papa! 🌟</p>
       <div class="idea-cats">${cats}</div>
@@ -2743,7 +2747,7 @@
       <textarea id="idea-text" class="idea-input" placeholder="Write or dictate your idea here… (example: Let Carrot ride a tiny skateboard! 🐢🛹)">${esc(ideaDraft)}</textarea>
       <div class="row" style="margin-top:8px">
         <button class="btn primary" data-act="sendWish">✨ Put Wish in Jar!</button>
-        ${wishes.length ? '<button class="btn pink" data-act="copyWishes">📋 Copy Wishes for Amp</button>' : ''}
+        ${hasUnsynced ? '<button class="btn pink" data-act="syncWishes">☁️ Send Waiting Wishes</button>' : ''}
       </div>
       <h4 style="margin:14px 0 8px;text-align:center">📜 Michelle's Wish List (${wishes.length})</h4>
       ${list}
@@ -2751,6 +2755,33 @@
 
     const box = $('#idea-text');
     if (box) box.addEventListener('input', () => { ideaDraft = box.value; });
+  }
+
+  async function syncWishes(quiet = false) {
+    const pending = (S.wishes || []).filter(w => !w.synced && !w.done);
+    if (!pending.length) return 0;
+    let sent = 0;
+    for (const w of pending) {
+      try {
+        const res = await fetch(WISH_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cat: w.cat, text: w.text, day: w.day }),
+        });
+        if (res.ok) {
+          w.synced = true;
+          sent++;
+        }
+      } catch {}
+    }
+    if (sent > 0) {
+      save();
+      if ($('#idea-text')) ideasModal();
+      if (!quiet) toast(`☁️ Sent ${sent} wish${sent > 1 ? 'es' : ''} straight to Papa & Amp!`);
+    } else if (!quiet) {
+      toast('Saved on your iPad — will send when online!');
+    }
+    return sent;
   }
 
   function sendWish() {
@@ -2761,13 +2792,14 @@
       return;
     }
     S.wishes = S.wishes || [];
-    S.wishes.unshift({ cat: ideaCat, text: txt, day: S.day, done: false, at: Date.now() });
+    S.wishes.unshift({ cat: ideaCat, text: txt, day: S.day, done: false, synced: false, at: Date.now() });
     ideaDraft = '';
     S.stars += 2;
     SFX.magic();
     sparkle(window.innerWidth / 2, window.innerHeight / 2, ['💡', '🌟', '✨', '💖'], 14);
     save(); render(); ideasModal();
-    toast('🌟 Wish saved in your Idea Box! (+2 ⭐ for creative thinking!)');
+    toast('🌟 Wish saved! (+2 ⭐ for creative thinking!)');
+    syncWishes(false);
   }
 
   function copyWishes() {
@@ -2961,6 +2993,7 @@
       case 'ideaCat': ideaCat = id || IDEA_CATS[0]; SFX.tap(); ideasModal(); break;
       case 'ideaChip': ideaDraft = id || ''; SFX.tap(); ideasModal(); break;
       case 'sendWish': sendWish(); break;
+      case 'syncWishes': syncWishes(false); break;
       case 'toggleWish':
         if (S.wishes && S.wishes[+i]) { S.wishes[+i].done = !S.wishes[+i].done; SFX.tap(); save(); ideasModal(); }
         break;
