@@ -633,8 +633,8 @@ body.giggle #scene { animation: wiggle .3s linear 8; }
   /* Keep all 6 garden mounds cleanly inside narrow portrait screens */
   .garden-meadow { min-height: 360px; }
   .mound {
-    width: 126px; height: 84px; font-size: 46px;
-    background: radial-gradient(ellipse at center, rgba(110, 68, 38, 0.85) 0%, rgba(138, 90, 60, 0.72) 66%, rgba(138, 90, 60, 0) 74%);
+    width: 128px; height: 82px; font-size: 46px;
+    background: radial-gradient(ellipse at center, rgba(102, 62, 34, 0.72) 0%, rgba(128, 82, 52, 0.52) 60%, rgba(138, 90, 60, 0) 74%);
   }
   .mound[data-i="0"] { left: 26% !important; top: 38% !important; }
   .mound[data-i="1"] { left: 74% !important; top: 38% !important; }
@@ -651,15 +651,14 @@ body.giggle #scene { animation: wiggle .3s linear 8; }
   .forage-node[data-i="6"] { left: 72% !important; top: 72% !important; }
   .forest-note { font-size: 13px; padding: 6px 12px; margin-right: 62px; }
 
-  /* Room on phone: dock Carrot's house cleanly below stage so it never covers the bed */
-  .room-stage { min-height: 230px; }
-  .room-piece { font-size: 56px; }
+  /* Room on phone: shift furniture slightly higher above Carrot's house card */
+  .room-stage { min-height: 230px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .room-piece { font-size: 56px; transform: translate(-50%, -135%); }
   .room-piece.big-piece { font-size: 86px; }
   .carrot-corner {
     position: static; width: 100%; max-width: none; margin-top: auto;
     padding: 8px 10px;
   }
-  .room-stage { display: flex; flex-direction: column; justify-content: flex-end; }
   .room-bottom-bar { padding-right: 64px; }
 
   /* Potions, Bakery, Shop, Class, Broom Race, Dialog & Modals on phone */
