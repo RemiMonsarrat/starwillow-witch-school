@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const token = process.env.GITHUB_WISH_TOKEN;
+  const token = (process.env.GITHUB_WISH_TOKEN || '').trim();
   if (!token) {
     return res.status(500).json({ ok: false, error: 'Missing GITHUB_WISH_TOKEN env var on Vercel' });
   }
